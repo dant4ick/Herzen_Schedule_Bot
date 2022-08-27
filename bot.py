@@ -1,101 +1,64 @@
-import json
-from pprint import pprint
+from datetime import datetime
 
-import requests as request
-from bs4 import BeautifulSoup
-from bs4.element import NavigableString
+from aiogram.dispatcher import filters
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-SCHEDULE_DATE_URL = r'https://guide.herzen.spb.ru/static/schedule_dates.php?id_group='
+from config import TELEGRAM_TOKEN
+from parse import *
+import logging
 
+from aiogram import Bot, Dispatcher, executor, types
 
-def parse_groups():
-    groups = {}
+logging.basicConfig(level=logging.INFO)
 
-    schedule = request.get(r'https://guide.herzen.spb.ru/static/schedule.php')
-    soup = BeautifulSoup(schedule.text, 'html.parser')
-
-    for faculty in soup.find('h1').find_next_siblings('h3'):
-        groups[faculty.text] = {}
-        forms = {}
-        for education_form in faculty.find_next_sibling('div').find_all('h4'):
-            forms[education_form.text] = {}
-            form = forms[education_form.text]
-
-            for data in education_form.find_next_sibling('ul').find_all('li'):
-                id_div = data.div
-                group_id = data.find('div').find('button')['onclick']
-                group_id = group_id.split("'")[1].split('=')[1].split('&')[0]
-                id_div.decompose()
-                stage, course, group = data.text.strip().split(', ')
-
-                if stage not in form.keys():
-                    form[stage] = {}
-                    form[stage][course] = {}
-                    form[stage][course][group] = group_id
-                elif course not in form[stage].keys():
-                    form[stage][course] = {}
-                    form[stage][course][group] = group_id
-                else:
-                    form[stage][course][group] = group_id
-            groups[faculty.text].update(forms)
-
-    with open('groups.json', 'w', encoding='UTF-8') as output:
-        json.dump(groups, output, indent=2, ensure_ascii=False)
+bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
+dp = Dispatcher(bot)
 
 
-def get_date_schedule(group, sub_group=None, date_1=None, date_2=None):
-    if date_1 and not date_2:
-        date_2 = date_1
+@dp.message_handler(filters.Text(contains='выбрать группу', ignore_case=True))
+async def send_today_schedule(msg: types.Message):
+    with open('groups.json', 'r', encoding='UTF-8') as groups_json:
+        groups = json.load(groups_json)
 
-    url = f"{SCHEDULE_DATE_URL}{group}&date1={date_1}&date2={date_2}"
-    schedule_response = request.get(url)
-    soup = BeautifulSoup(schedule_response.content, features="html.parser")
+    msg_text = ''
+    counter = 1
+    inline_kb_numbers = InlineKeyboardMarkup(row_width=8)
+    for faculty in groups.keys():
+        msg_text += f"{counter}. {faculty[0].upper()+faculty[1:]}\n"
+        inline_kb_numbers.insert(InlineKeyboardButton(f'{counter}', callback_data=f'{counter}'))
+        counter += 1
 
-    if soup.find('a', string='другую группу'):  # No courses at that period
-        return {}
+    await msg.answer(f"<b>На клавиатуре ниже выберите цифру, соответствующую вашему факультету:</b>\n\n"
+                     f"{msg_text}",
+                     reply_markup=inline_kb_numbers)
 
-    courses_column = soup.find('tbody').findAll('tr')
 
-    schedule_courses = {}
-    day_name = ''
-    for class_number in range(len(courses_column)):
+async def generate_schedule_message(schedule):
+    msg_text = ''
+    for course in schedule[list(schedule.keys())[0]]:
+        msg_text += f"\n⏰ {course['time']}" \
+                    f"\n<b>{course['name']}</b> {course['type']}" \
+                    f"\n{course['teacher']}" \
+                    f"\n{course['room']}\n"
+    return msg_text
 
-        class_time = courses_column[class_number].find('th').text
 
-        if courses_column[class_number].find('th', {'class': 'dayname'}):
-            day_name = courses_column[class_number].find('th', {'class': 'dayname'}).text
-            continue
+@dp.message_handler(commands=['today'])
+async def send_today_schedule(msg: types.Message):
+    if not msg.get_args():
+        await msg.answer("Кажется, я не знаю, где ты учишься. "
+                         "Пройди опрос, чтобы я мог вывести твое расписание.")
+        return
 
-        course = courses_column[class_number].findAll('td')
+    today = datetime.today().date()
+    schedule = parse_date_schedule(group=msg.get_args(), sub_group=2, date_1=today)
+    if not schedule:
+        await msg.answer("Сегодня занятий нет, можно отдыхать.")
+        return
 
-        if (len(course) > 1) and sub_group:  # If multiple classes at the same time
-            course = course[sub_group - 1]
-        else:
-            course = course[0]
-
-        if not course.find('strong'):  # If class not found
-            continue
-
-        class_name = course.find('strong')  # TODO: сделать поддержку нескольких пар в одной клетке
-        class_type = class_name.next.next
-        if type(class_name.next) is not NavigableString:
-            class_type = class_type.next
-        class_teacher = class_type.next.next.next
-        class_room = class_teacher.next.next
-
-        if day_name not in schedule_courses.keys():
-            schedule_courses[day_name] = []
-        schedule_courses[day_name].append({
-            'time': class_time,
-            'name': class_name.text,
-            'type': class_type.strip(),
-            'teacher': class_teacher.text,
-            'room': class_room.strip(', ')
-        })
-    return schedule_courses
+    msg_text = generate_schedule_message(schedule)
+    await msg.answer(f"Вот твое расписание на {today}:\n{msg_text}")
 
 
 if __name__ == '__main__':
-    # parse_groups()
-    courses = get_date_schedule(group=17229, date_1='2022-10-06')
-    pprint(courses)
+    executor.start_polling(dp, skip_updates=True)

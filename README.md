@@ -1,2 +1,2 @@
-# Herzen_Schedule_Bot
+# Herzen Schedule Bot
 Телеграм бот, показывающий расписание занятий РГПУ им. Герцена
