@@ -1,7 +1,10 @@
 import json
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
+
+import keyboard
+from bot import db
 
 cb_data = CallbackData('data', 'num')
 
@@ -31,3 +34,13 @@ async def generate_schedule_message(schedule):
                     f"\n{course['teacher']}" \
                     f"\n{course['room']}\n"
     return msg_text
+
+
+async def validate_user(msg):
+    user_data = db.get_user(msg.from_user.id)
+    if not user_data:
+        await msg.answer("Кажется, я не знаю, где ты учишься. "
+                         "Пройди опрос, чтобы я мог вывести твое расписание.",
+                         reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboard.bt_group_config))
+        return False
+    return True

@@ -1,7 +1,9 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext, filters
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 
+import handlers
+import keyboard
 import states
 from bot import dp, db
 from utils import *
@@ -15,7 +17,7 @@ async def cancel_process(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-@dp.message_handler(filters.Text(contains='выбрать группу', ignore_case=True))
+@dp.message_handler(filters.Text(contains='настройка группы', ignore_case=True))
 async def set_faculty(msg: types.Message):
     groups = await open_groups_file()
 
@@ -23,7 +25,7 @@ async def set_faculty(msg: types.Message):
 
     await msg.answer(f"<b>На клавиатуре ниже выберите цифру, соответствующую вашему факультету:</b>\n\n"
                      f"{msg_text}",
-                     reply_markup=inline_kb_numbers)
+                     reply_markup=inline_kb_numbers.row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.Faculty.set()
 
 
@@ -122,5 +124,7 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
     db.add_user(call.from_user.id, group_id)
 
-    await call.message.edit_text(f"<b>Хорошо, теперь можно исполь</b>")
-    await states.UserData.next()
+    await call.message.edit_text(f"<b>Хорошо, все готово!\n</b>"
+                                 f"Теперь можешь использовать кнопки, чтобы смотреть расписание!")
+    await state.finish()
+    await handlers.get_help(call.message)
