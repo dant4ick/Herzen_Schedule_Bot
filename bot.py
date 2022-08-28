@@ -172,13 +172,14 @@ async def generate_schedule_message(schedule):
 
 @dp.message_handler(commands=['today'])
 async def send_today_schedule(msg: types.Message):
-    if not msg.get_args():
+    group_id, sub_group = db.get_user(msg.from_user.id)
+    if not group_id:
         await msg.answer("Кажется, я не знаю, где ты учишься. "
                          "Пройди опрос, чтобы я мог вывести твое расписание.")
         return
 
     today = datetime.today().date()
-    schedule = parse_date_schedule(group=msg.get_args(), sub_group=2, date_1=today)
+    schedule = parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today)
     if not schedule:
         await msg.answer("Сегодня занятий нет, можно отдыхать.")
         return

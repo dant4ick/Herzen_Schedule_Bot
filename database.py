@@ -13,6 +13,6 @@ class Database:
 
     def get_user(self, user_id):
         with self.connection:
-            user_data = self.cursor.execute("SELECT (group_id, sub_group) FROM `users` WHERE user_id = ?",
+            user_data = self.cursor.execute("SELECT group_id, sub_group FROM `users` WHERE user_id = ?",
                                             (user_id,)).fetchone()
         return user_data
