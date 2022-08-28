@@ -8,8 +8,9 @@ class Database:
 
     def add_user(self, user_id, group_id, sub_group=0):
         with self.connection:
-            self.cursor.execute("INSERT INTO `users` (user_id, group_id, sub_group) VALUES (?, ?, ?)",
-                                (user_id, group_id, sub_group))
+            self.cursor.execute("INSERT INTO `users` (user_id, group_id, sub_group) VALUES (?, ?, ?)"
+                                "ON CONFLICT (user_id) DO UPDATE SET user_id = ?",
+                                (user_id, group_id, sub_group, user_id))
 
     def get_user(self, user_id):
         with self.connection:
