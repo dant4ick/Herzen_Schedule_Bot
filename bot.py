@@ -5,6 +5,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.callback_data import CallbackData
 
+import database
 import states
 from config import TELEGRAM_TOKEN
 from parse import *
@@ -17,6 +18,8 @@ logging.basicConfig(level=logging.INFO)
 storage = MemoryStorage()
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
 dp = Dispatcher(bot, storage=storage)
+
+db = database.Database('user_data.db')
 
 cb_data = CallbackData('data', 'num')
 
@@ -150,6 +153,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
         group_name = list(groups[faculty_name][form_name][step_name][course_name].keys())[int(callback_data['num']) - 1]
 
     group_id = groups[faculty_name][form_name][step_name][course_name][group_name]
+
+    db.add_user(call.from_user.id, group_id)
 
     await call.message.edit_text(f"<b>Айдишник группы: {group_id}</b>")
     await states.UserData.next()
