@@ -213,6 +213,3 @@ cython_debug/
 
 ### Generated files
 groups.json
-
-### Private data files
-config.py
