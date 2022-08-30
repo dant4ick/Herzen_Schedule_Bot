@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from aiogram import types
@@ -18,6 +19,7 @@ async def start(msg: types.Message):
                      "На клавиатуре у тебя появилась кнопка \"Настройка группы\".\n"
                      "Нажимай и давай начинать!",
                      reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboard.bt_group_config))
+    logging.debug(f"Start: {msg.from_user.id} (@{msg.from_user.username})")
 
 
 @dp.message_handler(commands=['help'])
@@ -68,7 +70,7 @@ async def send_week_schedule(msg: types.Message):
     group_id, sub_group = db.get_user(msg.from_user.id)
 
     today = datetime.today().date()
-    week = datetime.today().date() + timedelta(days=7)
+    week = datetime.today().date() + timedelta(days=6)
 
     schedule = parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
     if not schedule:
