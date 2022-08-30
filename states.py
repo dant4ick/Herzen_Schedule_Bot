@@ -7,3 +7,4 @@ class UserData(StatesGroup):
     Step = State()
     Course = State()
     Group = State()
+    SubGroup = State()

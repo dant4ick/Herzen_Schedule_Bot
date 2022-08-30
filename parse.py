@@ -67,7 +67,7 @@ def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
 
         course = courses_column[class_number].findAll('td')
 
-        if (len(course) > 1) and sub_group:  # If multiple classes at the same time
+        if (len(course) > 1) and sub_group != 0:  # If multiple classes at the same time
             course = course[sub_group - 1]
         else:
             course = course[0]

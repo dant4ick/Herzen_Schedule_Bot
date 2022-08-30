@@ -1,18 +1,17 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext, filters
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery
 
 import handlers
-import keyboard
 import states
-from bot import dp, db
+from bot import dp
 from utils import *
 
 
 @dp.callback_query_handler(text='cancel', state='*')
 async def cancel_process(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await call.message.reply("Ok, let's forget about it.")
+    await call.message.reply("Хорошо, забыли.")
     await call.message.delete_reply_markup()
     await call.answer()
 
@@ -25,7 +24,8 @@ async def set_faculty(msg: types.Message):
 
     await msg.answer(f"<b>На клавиатуре ниже выберите цифру, соответствующую вашему факультету:</b>\n\n"
                      f"{msg_text}",
-                     reply_markup=inline_kb_numbers.row(InlineKeyboardButton('Отменить', callback_data='cancel')))
+                     reply_markup=inline_kb_numbers
+                     .row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.Faculty.set()
 
 
@@ -42,7 +42,8 @@ async def set_form(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_text(f"<b>На клавиатуре ниже выберите цифру, "
                                  f"соответствующую вашей форме обучения:</b>\n\n"
                                  f"{msg_text}",
-                                 reply_markup=inline_kb_numbers)
+                                 reply_markup=inline_kb_numbers
+                                 .row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.next()
 
 
@@ -62,7 +63,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_text(f"<b>На клавиатуре ниже выберите цифру, "
                                  f"соответствующую вашей ступени обучения:</b>\n\n"
                                  f"{msg_text}",
-                                 reply_markup=inline_kb_numbers)
+                                 reply_markup=inline_kb_numbers
+                                 .row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.next()
 
 
@@ -83,7 +85,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_text(f"<b>На клавиатуре ниже выберите цифру, "
                                  f"соответствующую вашему году обучения:</b>\n\n"
                                  f"{msg_text}",
-                                 reply_markup=inline_kb_numbers)
+                                 reply_markup=inline_kb_numbers
+                                 .row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.next()
 
 
@@ -105,7 +108,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_text(f"<b>На клавиатуре ниже выберите цифру, "
                                  f"соответствующую вашей группе:</b>\n\n"
                                  f"{msg_text}",
-                                 reply_markup=inline_kb_numbers)
+                                 reply_markup=inline_kb_numbers
+                                 .row(InlineKeyboardButton('Отменить', callback_data='cancel')))
     await states.UserData.next()
 
 
@@ -119,12 +123,30 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
         step_name = data['step']
         course_name = data['course']
         group_name = list(groups[faculty_name][form_name][step_name][course_name].keys())[int(callback_data['num']) - 1]
+        group_id = groups[faculty_name][form_name][step_name][course_name][group_name]
+        data['group_id'] = group_id
 
-    group_id = groups[faculty_name][form_name][step_name][course_name][group_name]
+    await call.message.edit_text("Если такая есть, выберите <b>номер подгруппы.</b> "
+                                 "Если отсутствует, нажмите кнопку <b>\"Без подгруппы\"</b>.",
+                                 reply_markup=InlineKeyboardMarkup().add(
+                                     InlineKeyboardButton('Без подгруппы', callback_data=cb_data.new(num=0)),
+                                     InlineKeyboardButton('1', callback_data=cb_data.new(num=1)),
+                                     InlineKeyboardButton('2', callback_data=cb_data.new(num=2))
+                                 ).row(
+                                     InlineKeyboardButton('Отменить', callback_data='cancel')
+                                 ))
+    await states.UserData.next()
 
-    db.add_user(call.from_user.id, group_id)
 
-    await call.message.edit_text(f"<b>Хорошо, все готово!\n</b>"
-                                 f"Теперь можешь использовать кнопки, чтобы смотреть расписание!")
+@dp.callback_query_handler(cb_data.filter(), state=states.UserData.SubGroup)
+async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    async with state.proxy() as data:
+        group_id = data['group_id']
+        sub_group = int(callback_data['num'])
+
+    db.add_user(call.from_user.id, group_id, sub_group)
+
+    await call.message.edit_text("<b>Хорошо, все готово!</b>\n"
+                                 "Теперь можешь использовать кнопки, чтобы смотреть расписание!")
     await state.finish()
     await handlers.get_help(call.message)
