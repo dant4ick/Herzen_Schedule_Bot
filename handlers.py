@@ -19,7 +19,7 @@ async def start(msg: types.Message):
                      "На клавиатуре у тебя появилась кнопка \"Настройка группы\".\n"
                      "Нажимай и давай начинать!",
                      reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboard.bt_group_config))
-    logging.debug(f"Start: {msg.from_user.id} (@{msg.from_user.username})")
+    logging.info(f"Start: {msg.from_user.id} (@{msg.from_user.username})")
 
 
 @dp.message_handler(commands=['help'])

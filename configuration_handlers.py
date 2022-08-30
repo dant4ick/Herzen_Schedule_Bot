@@ -151,5 +151,5 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await call.message.edit_text("<b>Хорошо, все готово!</b>\n"
                                  "Теперь можешь использовать кнопки, чтобы смотреть расписание!")
     await state.finish()
-    logging.debug(f"Add: {call.from_user.id} (@{call.from_user.username}) - group: {group_id}, subgroup: {sub_group})")
+    logging.info(f"Add: {call.from_user.id} (@{call.from_user.username}) - group: {group_id}, subgroup: {sub_group})")
     await handlers.get_help(call.message)
