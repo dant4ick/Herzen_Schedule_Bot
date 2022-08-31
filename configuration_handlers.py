@@ -33,6 +33,8 @@ async def set_faculty(msg: types.Message):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.Faculty)
 async def set_form(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     groups = await open_groups_file()
     faculty_name = list(groups.keys())[int(callback_data['num']) - 1]
     forms = groups[faculty_name]
@@ -51,6 +53,8 @@ async def set_form(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.Form)
 async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     groups = await open_groups_file()
 
     async with state.proxy() as data:
@@ -72,6 +76,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.Step)
 async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     groups = await open_groups_file()
 
     async with state.proxy() as data:
@@ -94,6 +100,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.Course)
 async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     groups = await open_groups_file()
 
     async with state.proxy() as data:
@@ -117,6 +125,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.Group)
 async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     groups = await open_groups_file()
 
     async with state.proxy() as data:
@@ -142,6 +152,8 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
 
 @dp.callback_query_handler(cb_data.filter(), state=states.UserData.SubGroup)
 async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
+    await call.answer()
+
     async with state.proxy() as data:
         group_id = data['group_id']
         sub_group = int(callback_data['num'])

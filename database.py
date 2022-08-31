@@ -6,11 +6,12 @@ class Database:
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
 
-    def add_user(self, user_id, group_id, sub_group=0):
+    def add_user(self, user_id, group_id, sub_group):
         with self.connection:
             self.cursor.execute("INSERT INTO `users` (user_id, group_id, sub_group) VALUES (?, ?, ?)"
-                                "ON CONFLICT (user_id) DO UPDATE SET user_id = ?",
-                                (user_id, group_id, sub_group, user_id))
+                                "ON CONFLICT (user_id) WHERE user_id = ? "
+                                "DO UPDATE SET group_id = ?, sub_group = ?",
+                                (user_id, group_id, sub_group, user_id, group_id, sub_group))
 
     def get_user(self, user_id):
         with self.connection:
