@@ -1,3 +1,5 @@
+import logging
+
 import requests as request
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString
@@ -42,15 +44,20 @@ def parse_groups():
         json.dump(groups, output, indent=2, ensure_ascii=False)
 
 
-def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
+async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if date_1 and not date_2:
         date_2 = date_1
 
     url = f"{SCHEDULE_DATE_URL}{group}&date1={date_1}&date2={date_2}"
     schedule_response = request.get(url)
+
+    logging.info(f"group: {group}, sub_group: {sub_group}, date: {date_1} - {date_2}, "
+                 f"url: {url}, r_code: {schedule_response.status_code}")
+
     soup = BeautifulSoup(schedule_response.content, features="html.parser")
 
-    if soup.find('a', string='другую группу'):  # No courses at that period
+    if soup.find('a', string='другую группу'):  # No classes at that period
+        logging.info(f"url: {url} no classes")
         return {}
 
     courses_column = soup.find('tbody').findAll('tr')

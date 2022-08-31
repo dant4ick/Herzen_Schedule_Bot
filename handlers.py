@@ -32,51 +32,66 @@ async def get_help(msg: types.Message):
 @dp.message_handler(filters.Text(contains='сегодня', ignore_case=True))
 async def send_today_schedule(msg: types.Message):
     if not await validate_user(msg):
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: {msg.from_user.username}")
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
     today = datetime.today().date()
-    schedule = parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today)
+    schedule = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today)
+
+    logging.info(f"Attempted send today schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}\n"
+                 f"response: {schedule}")
+
     if not schedule:
         await msg.answer("🎉 Сегодня занятий нет, можно отдыхать.")
         await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
         return
 
-    msg_text = generate_schedule_message(schedule)
+    msg_text = await generate_schedule_message(schedule)
     await msg.answer(f"Вот твое расписание на {today}:\n{msg_text}")
 
 
 @dp.message_handler(filters.Text(contains='завтра', ignore_case=True))
 async def send_tomorrow_schedule(msg: types.Message):
     if not await validate_user(msg):
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
     tomorrow = datetime.today().date() + timedelta(days=1)
-    schedule = parse_date_schedule(group=group_id, sub_group=sub_group, date_1=tomorrow)
+    schedule = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=tomorrow)
+
+    logging.info(f"Attempted send tomorrow schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}\n"
+                 f"response: {schedule}")
+
     if not schedule:
         await msg.answer("🎉 Завтра занятий нет, можно отдыхать.")
         await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
         return
 
-    msg_text = generate_schedule_message(schedule)
+    msg_text = await generate_schedule_message(schedule)
     await msg.answer(f"Вот твое расписание на {tomorrow}:\n{msg_text}")
 
 
 @dp.message_handler(filters.Text(contains='неделя', ignore_case=True))
 async def send_week_schedule(msg: types.Message):
     if not await validate_user(msg):
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: {msg.from_user.username}")
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
     today = datetime.today().date()
-    week = datetime.today().date() + timedelta(days=6)
+    week = today + timedelta(days=6)
 
-    schedule = parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
+    schedule = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
+
+    logging.info(f"Attempted send week schedule - id: {msg.from_user.id}, username: {msg.from_user.username}\n"
+                 f"response: {schedule}")
+
     if not schedule:
         await msg.answer("🎉 На неделе занятий нет, можно отдыхать.")
         await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
         return
 
-    msg_text = generate_schedule_message(schedule)
+    msg_text = await generate_schedule_message(schedule)
     await msg.answer(f"Вот твое расписание на ({today} — {week}) :\n{msg_text}")
