@@ -8,7 +8,7 @@ from aiogram.types import ReplyKeyboardMarkup
 import keyboard
 from bot import db, dp
 from parse import parse_date_schedule
-from utils import generate_schedule_message, validate_user
+from utils import generate_schedule_message, validate_user, get_random_chill_sticker
 
 
 @dp.message_handler(commands=['start'])
@@ -44,7 +44,7 @@ async def send_today_schedule(msg: types.Message):
 
     if not schedule:
         await msg.answer("🎉 Сегодня занятий нет, можно отдыхать.")
-        await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
+        await msg.answer_sticker(await get_random_chill_sticker())
         return
 
     msg_text = await generate_schedule_message(schedule)
@@ -66,7 +66,7 @@ async def send_tomorrow_schedule(msg: types.Message):
 
     if not schedule:
         await msg.answer("🎉 Завтра занятий нет, можно отдыхать.")
-        await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
+        await msg.answer_sticker(await get_random_chill_sticker())
         return
 
     msg_text = await generate_schedule_message(schedule)
@@ -90,7 +90,7 @@ async def send_week_schedule(msg: types.Message):
 
     if not schedule:
         await msg.answer("🎉 На неделе занятий нет, можно отдыхать.")
-        await msg.answer_sticker('CAACAgIAAxkBAAEXjKZjC-Ky4494QMqmyAKgvTFV4fsJdQACoAwAAnUY2Et2hyIlXw_lYSkE')
+        await msg.answer_sticker(await get_random_chill_sticker())
         return
 
     msg_text = await generate_schedule_message(schedule)
