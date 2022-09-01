@@ -86,8 +86,16 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
         class_type = class_name.next.next
         if type(class_name.next) is not NavigableString:
             class_type = class_type.next
-        class_teacher = class_type.next.next.next
-        class_room = class_teacher.next.next
+
+        class_teacher = ''
+        class_room = ''
+
+        if "дистанционное обучение" not in course.text:  # TODO: сделать поддержку отсутствия параметров
+            class_teacher = class_type.next.next.next
+            class_room = class_teacher.next.next
+
+            class_teacher = class_teacher.text
+            class_room = str(class_room.text).strip(", \n")
 
         if day_name not in schedule_courses.keys():
             schedule_courses[day_name] = []
@@ -95,7 +103,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
             'time': class_time,
             'name': class_name.text,
             'type': class_type.strip(),
-            'teacher': class_teacher.text,
-            'room': class_room.strip(', ')
+            'teacher': class_teacher,
+            'room': class_room
         })
     return schedule_courses

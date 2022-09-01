@@ -48,7 +48,7 @@ async def send_today_schedule(msg: types.Message):
         return
 
     msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на {today}:\n{msg_text}")
+    await msg.answer(f"Вот твое расписание на сегодня:\n{msg_text}")
 
 
 @dp.message_handler(filters.Text(contains='завтра', ignore_case=True))
@@ -70,7 +70,7 @@ async def send_tomorrow_schedule(msg: types.Message):
         return
 
     msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на {tomorrow}:\n{msg_text}")
+    await msg.answer(f"Вот твое расписание на завтра:\n{msg_text}")
 
 
 @dp.message_handler(filters.Text(contains='неделя', ignore_case=True))
@@ -94,4 +94,4 @@ async def send_week_schedule(msg: types.Message):
         return
 
     msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на ({today} — {week}) :\n{msg_text}")
+    await msg.answer(f"Вот твое расписание на неделю :\n{msg_text}")

@@ -29,11 +29,22 @@ async def generate_kb_nums(source):
 
 async def generate_schedule_message(schedule):
     msg_text = ''
-    for course in schedule[list(schedule.keys())[0]]:
-        msg_text += f"\n⏰ {course['time']}" \
-                    f"\n<b>{course['name']}</b> {course['type']}" \
-                    f"\n{course['teacher']}" \
-                    f"\n{course['room']}\n"
+    for day in schedule:
+        msg_text += f"\n🗓{day}\n"
+        for course in schedule[day]:
+            time = course['time']
+            name = course['name']
+            type = course['type']
+            teacher = course['teacher']
+            room = course['room']
+
+            msg_text += f"\n⏰ {time}" \
+                        f"\n\t<b>{name}</b> {type}"
+            if teacher:
+                msg_text += f"\n{teacher.strip()}"
+            if room:
+                msg_text += f"\n\t{room.strip()}"
+        msg_text += "\n"
     return msg_text
 
 
