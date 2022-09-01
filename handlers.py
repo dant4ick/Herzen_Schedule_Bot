@@ -32,7 +32,7 @@ async def get_help(msg: types.Message):
 @dp.message_handler(filters.Text(contains='сегодня', ignore_case=True))
 async def send_today_schedule(msg: types.Message):
     if not await validate_user(msg):
-        logging.info(f"User validation failed - id: {msg.from_user.id}, username: {msg.from_user.username}")
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
@@ -76,7 +76,7 @@ async def send_tomorrow_schedule(msg: types.Message):
 @dp.message_handler(filters.Text(contains='неделя', ignore_case=True))
 async def send_week_schedule(msg: types.Message):
     if not await validate_user(msg):
-        logging.info(f"User validation failed - id: {msg.from_user.id}, username: {msg.from_user.username}")
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
@@ -85,7 +85,7 @@ async def send_week_schedule(msg: types.Message):
 
     schedule = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
 
-    logging.info(f"Attempted send week schedule - id: {msg.from_user.id}, username: {msg.from_user.username}\n"
+    logging.info(f"Attempted send week schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}\n"
                  f"response: {schedule}")
 
     if not schedule:

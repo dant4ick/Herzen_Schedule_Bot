@@ -39,11 +39,11 @@ async def generate_schedule_message(schedule):
             room = course['room']
 
             msg_text += f"\n⏰ {time}" \
-                        f"\n\t<b>{name}</b> {type}"
+                        f"\n<b>{name}</b> {type}"
             if teacher:
                 msg_text += f"\n{teacher.strip()}"
             if room:
-                msg_text += f"\n\t{room.strip()}"
+                msg_text += f"\n{room.strip()}"
         msg_text += "\n"
     return msg_text
 
@@ -67,4 +67,4 @@ async def get_random_chill_sticker():
         'CAACAgIAAxkBAAEXpd9jD6-9IxLBW0nmsjZ3_EYm8Q9dSgACIhQAAraw0EtoiZUwd4T4UykE',  # Pear party
         'CAACAgIAAxkBAAEXpeNjD6_GQ3TKcVOe0oKVNJoygASHXwACbQEAAiI3jgQl87gUwpqm8ikE'  # Kolobok party
     ]
-    return stickers[random.randint(0, len(stickers)) - 1]
+    return stickers[random.randint(0, len(stickers) - 1)]
