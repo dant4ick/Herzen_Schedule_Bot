@@ -11,7 +11,7 @@ from utils import *
 
 
 @dp.callback_query_handler(text='cancel', state='*')
-async def cancel_process(call: types.CallbackQuery, state: FSMContext):
+async def cancel_process_cb(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
     await call.message.reply("Хорошо, забыли.")
     await call.message.delete_reply_markup()
@@ -165,3 +165,11 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await state.finish()
     logging.info(f"Add: {call.from_user.id} (@{call.from_user.username}) - group: {group_id}, subgroup: {sub_group})")
     await handlers.get_help(call.message)
+
+
+@dp.message_handler(state='*')
+async def interrupt_state(msg: types.Message, state: FSMContext):
+    await state.finish()
+    await msg.answer("Операция прервана, придется начать заново.\n"
+                     "Если группа еще не была настроена, нажми /start.\n"
+                     "Если кнопки бота на месте, можешь воспользоваться ими.")

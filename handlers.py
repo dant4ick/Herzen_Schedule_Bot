@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from aiogram import types
-from aiogram.dispatcher import filters
+from aiogram.dispatcher import filters, FSMContext
 from aiogram.types import ReplyKeyboardMarkup
 
 import keyboard
@@ -25,7 +25,10 @@ async def start(msg: types.Message):
 @dp.message_handler(commands=['help'])
 async def get_help(msg: types.Message):
     await msg.answer("Чтобы посмотреть расписание, используй кнопки \"Сегодня\", \"Завтра\", \"Неделя\".\n"
-                     "Чтобы изменить свою группу, используй кнопку \"Настройка группы\".",
+                     "Чтобы изменить свою группу, используй кнопку \"Настройка группы\".\n"
+                     "Что-то не понятно? Столкнулись с проблемой? "
+                     "По любому поводу можешь написать разработчику, ссылка есть в описании бота. "
+                     "Не кусаюсь 😉",
                      reply_markup=keyboard.kb_main)
 
 
