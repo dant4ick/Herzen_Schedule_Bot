@@ -2,20 +2,20 @@ import asyncio
 import json
 import logging
 import random
+from pathlib import Path
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, Message
 from aiogram.utils import exceptions
 from aiogram.utils.callback_data import CallbackData
 
 from scripts.handlers import keyboards
-from scripts.bot import bot
 from scripts.bot import db
 
 cb_data = CallbackData('data', 'num')
 
 
 async def open_groups_file():
-    with open('../groups.json', 'r', encoding='UTF-8') as groups_json:
+    with open(Path('../groups.json'), 'r', encoding='UTF-8') as groups_json:
         groups = json.load(groups_json)
     return groups
 

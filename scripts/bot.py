@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from datetime import datetime
 
 from aiogram import Bot, Dispatcher
@@ -7,7 +8,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import scripts.database as database
 from config import TELEGRAM_TOKEN
 
-logging.basicConfig(stream=open(datetime.now().strftime('../logs/%d-%m-%Y_%H-%M.log'), 'w', encoding='UTF-8'),
+logging.basicConfig(stream=open(Path(datetime.now().strftime('../logs/%d-%m-%Y_%H-%M.log')), 'w', encoding='UTF-8'),
                     format='%(asctime)s - [%(levelname)s] - %(funcName)s - %(message)s',
                     level=logging.INFO)
 
