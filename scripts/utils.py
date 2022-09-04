@@ -1,17 +1,21 @@
+import asyncio
 import json
+import logging
 import random
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, Message
+from aiogram.utils import exceptions
 from aiogram.utils.callback_data import CallbackData
 
-import keyboard
-from bot import db
+from scripts.handlers import keyboards
+from scripts.bot import bot
+from scripts.bot import db
 
 cb_data = CallbackData('data', 'num')
 
 
 async def open_groups_file():
-    with open('groups.json', 'r', encoding='UTF-8') as groups_json:
+    with open('../groups.json', 'r', encoding='UTF-8') as groups_json:
         groups = json.load(groups_json)
     return groups
 
@@ -53,7 +57,7 @@ async def validate_user(msg):
     if not user_data:
         await msg.answer("Кажется, я не знаю, где ты учишься. "
                          "Пройди опрос, чтобы я мог вывести твое расписание.",
-                         reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboard.bt_group_config))
+                         reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))
         return False
     return True
 
@@ -68,3 +72,25 @@ async def get_random_chill_sticker():
         'CAACAgIAAxkBAAEXpeNjD6_GQ3TKcVOe0oKVNJoygASHXwACbQEAAiI3jgQl87gUwpqm8ikE'  # Kolobok party
     ]
     return stickers[random.randint(0, len(stickers) - 1)]
+
+
+async def broadcast_message(user_id: int, message: Message):
+    try:
+        await message.send_copy(user_id, disable_notification=True)
+
+    except exceptions.BotBlocked:
+        logging.error(f"target id:{user_id} - blocked by user")
+    except exceptions.ChatNotFound:
+        logging.error(f"target id:{user_id} - chat not found")
+    except exceptions.RetryAfter as e:
+        logging.error(f"target id:{user_id} - flood limit, sleep {e.timeout} seconds")
+        await asyncio.sleep(e.timeout)
+        return await broadcast_message(user_id, message)
+    except exceptions.UserDeactivated:
+        logging.error(f"target id:{user_id} - user is deactivated")
+    except exceptions.TelegramAPIError:
+        logging.exception(f"target id:{user_id} - failed")
+    else:
+        logging.info(f"Target [ID:{user_id}]: success")
+        return True
+    return False

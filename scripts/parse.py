@@ -40,7 +40,7 @@ def parse_groups():
                     form[stage][course][group] = group_id
             groups[faculty.text].update(forms)
 
-    with open('groups.json', 'w', encoding='UTF-8') as output:
+    with open('../groups.json', 'w', encoding='UTF-8') as output:
         json.dump(groups, output, indent=2, ensure_ascii=False)
 
 
@@ -57,7 +57,6 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     soup = BeautifulSoup(schedule_response.content, features="html.parser")
 
     if soup.find('a', string='другую группу'):  # No classes at that period
-        logging.info(f"url: {url} no classes")
         return {}
 
     courses_column = soup.find('tbody').findAll('tr')
@@ -106,4 +105,4 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
             'teacher': class_teacher,
             'room': class_room
         })
-    return schedule_courses
+    return schedule_courses, url

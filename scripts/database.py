@@ -18,3 +18,9 @@ class Database:
             user_data = self.cursor.execute("SELECT group_id, sub_group FROM `users` WHERE user_id = ?",
                                             (user_id,)).fetchone()
         return user_data
+
+    def get_all_id(self):
+        with self.connection:
+            self.cursor.execute("SELECT user_id FROM 'users'")
+            all_id = self.cursor.fetchall()
+        return all_id

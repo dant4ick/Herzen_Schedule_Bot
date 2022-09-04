@@ -1,11 +1,10 @@
 from aiogram import executor
 
-from bot import dp
+from scripts.bot import dp
 
-import handlers
-import configuration_handlers
+import scripts.handlers
 
-from parse import parse_groups
+from scripts.parse import parse_groups
 
 
 if __name__ == "__main__":

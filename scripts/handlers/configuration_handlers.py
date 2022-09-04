@@ -4,10 +4,10 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext, filters
 from aiogram.types import CallbackQuery
 
-import handlers
-import states
-from bot import dp
-from utils import *
+from scripts.handlers import basic_handlers
+from scripts import states
+from scripts.bot import dp
+from scripts.utils import *
 
 
 @dp.callback_query_handler(text='cancel', state='*')
@@ -164,12 +164,4 @@ async def set_step(call: CallbackQuery, callback_data: dict, state: FSMContext):
                                  "Теперь можешь использовать кнопки, чтобы смотреть расписание!")
     await state.finish()
     logging.info(f"Add: {call.from_user.id} (@{call.from_user.username}) - group: {group_id}, subgroup: {sub_group})")
-    await handlers.get_help(call.message)
-
-
-@dp.message_handler(state='*')
-async def interrupt_state(msg: types.Message, state: FSMContext):
-    await state.finish()
-    await msg.answer("Операция прервана, придется начать заново.\n"
-                     "Если группа еще не была настроена, нажми /start.\n"
-                     "Если кнопки бота на месте, можешь воспользоваться ими.")
+    await basic_handlers.get_help(call.message)

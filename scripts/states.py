@@ -8,3 +8,8 @@ class UserData(StatesGroup):
     Course = State()
     Group = State()
     SubGroup = State()
+
+
+class Broadcast(StatesGroup):
+    Message = State()
+    Confirmation = State()
