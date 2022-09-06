@@ -76,6 +76,9 @@ async def send_tomorrow_schedule(msg: types.Message):
 
     logging.info(f"response: {schedule_response}")
 
+    if schedule_response is None:
+        await msg.answer("Упс, кажется, расписание не отвечает. Попробуй еще раз.")
+
     if not schedule_response:
         await msg.answer("🎉 Завтра занятий нет, можно отдыхать.")
         await msg.answer_sticker(await get_random_chill_sticker())

@@ -1,3 +1,5 @@
+import os.path
+
 from aiogram import executor
 
 from scripts.bot import dp

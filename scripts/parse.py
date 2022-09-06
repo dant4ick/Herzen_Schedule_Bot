@@ -1,10 +1,12 @@
 import logging
+from pathlib import Path
 
 import requests as request
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString
 import json
 
+from config import BASE_DIR
 
 SCHEDULE_DATE_URL = r'https://guide.herzen.spb.ru/static/schedule_dates.php?id_group='
 
@@ -40,7 +42,7 @@ def parse_groups():
                     form[stage][course][group] = group_id
             groups[faculty.text].update(forms)
 
-    with open('../groups.json', 'w', encoding='UTF-8') as output:
+    with open(Path(BASE_DIR / 'groups.json'), 'w', encoding='UTF-8') as output:
         json.dump(groups, output, indent=2, ensure_ascii=False)
 
 
@@ -59,7 +61,10 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if soup.find('a', string='другую группу'):  # No classes at that period
         return {}
 
-    courses_column = soup.find('tbody').findAll('tr')
+    if soup.find('tbody'):
+        courses_column = soup.find('tbody').findAll('tr')
+    else:
+        return
 
     schedule_courses = {}
     day_name = ''
@@ -105,4 +110,6 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
             'teacher': class_teacher,
             'room': class_room
         })
+    if not schedule_courses:
+        return {}
     return schedule_courses, url
