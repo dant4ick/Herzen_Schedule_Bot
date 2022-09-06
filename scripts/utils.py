@@ -2,12 +2,12 @@ import asyncio
 import json
 import logging
 import random
-from pathlib import Path
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, Message
 from aiogram.utils import exceptions
 from aiogram.utils.callback_data import CallbackData
 
+from pathlib import Path
 from config import BASE_DIR
 from scripts.handlers import keyboards
 from scripts.bot import db

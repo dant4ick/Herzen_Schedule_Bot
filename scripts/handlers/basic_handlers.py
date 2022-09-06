@@ -32,6 +32,32 @@ async def get_help(msg: types.Message):
                      reply_markup=keyboards.kb_main)
 
 
+async def send_date_schedule(msg: types.Message, schedule_response, period: str):
+    logging.info(f"response: {schedule_response}")
+
+    if schedule_response is None:
+        await msg.answer("😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.")
+
+    if period == "неделя":
+        period = "этой неделе"
+
+    if not schedule_response:
+        await msg.answer(f"🎉На {period} занятий нет, можно отдыхать.")
+        await msg.answer_sticker(await get_random_chill_sticker())
+        return
+
+    schedule, url = schedule_response
+
+    if period == "этой неделе":
+        period = "эту неделю"
+
+    msg_text = await generate_schedule_message(schedule)
+    await msg.answer(f"Вот твое расписание на {period}:\n{msg_text}",
+                     reply_markup=InlineKeyboardMarkup().add(
+                         InlineKeyboardButton('Проверить на сайте', f"{url}")
+                     ))
+
+
 @dp.message_handler(filters.Text(contains='сегодня', ignore_case=True))
 async def send_today_schedule(msg: types.Message):
     if not await validate_user(msg):
@@ -45,20 +71,7 @@ async def send_today_schedule(msg: types.Message):
 
     schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today)
 
-    logging.info(f"response: {schedule_response}")
-
-    if not schedule_response:
-        await msg.answer("🎉 Сегодня занятий нет, можно отдыхать.")
-        await msg.answer_sticker(await get_random_chill_sticker())
-        return
-
-    schedule, url = schedule_response
-
-    msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на сегодня:\n{msg_text}",
-                     reply_markup=InlineKeyboardMarkup().add(
-                         InlineKeyboardButton('Проверить на сайте', f"{url}")
-                     ))
+    await send_date_schedule(msg, schedule_response, "сегодня")
 
 
 @dp.message_handler(filters.Text(contains='завтра', ignore_case=True))
@@ -74,23 +87,7 @@ async def send_tomorrow_schedule(msg: types.Message):
 
     schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=tomorrow)
 
-    logging.info(f"response: {schedule_response}")
-
-    if schedule_response is None:
-        await msg.answer("Упс, кажется, расписание не отвечает. Попробуй еще раз.")
-
-    if not schedule_response:
-        await msg.answer("🎉 Завтра занятий нет, можно отдыхать.")
-        await msg.answer_sticker(await get_random_chill_sticker())
-        return
-
-    schedule, url = schedule_response
-
-    msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на завтра:\n{msg_text}",
-                     reply_markup=InlineKeyboardMarkup().add(
-                         InlineKeyboardButton('Проверить на сайте', f"{url}")
-                     ))
+    await send_date_schedule(msg, schedule_response, "завтра")
 
 
 @dp.message_handler(filters.Text(contains='неделя', ignore_case=True))
@@ -107,17 +104,4 @@ async def send_week_schedule(msg: types.Message):
 
     schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
 
-    logging.info(f"response: {schedule_response}")
-
-    if not schedule_response:
-        await msg.answer("🎉 На этой неделе занятий нет, можно отдыхать.")
-        await msg.answer_sticker(await get_random_chill_sticker())
-        return
-
-    schedule, url = schedule_response
-
-    msg_text = await generate_schedule_message(schedule)
-    await msg.answer(f"Вот твое расписание на неделю :\n{msg_text}",
-                     reply_markup=InlineKeyboardMarkup().add(
-                         InlineKeyboardButton('Проверить на сайте', f"{url}")
-                     ))
+    await send_date_schedule(msg, schedule_response, "неделя")
