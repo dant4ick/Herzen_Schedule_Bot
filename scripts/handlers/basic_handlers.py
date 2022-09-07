@@ -55,11 +55,14 @@ async def send_date_schedule(msg: types.Message, schedule_response, period: str)
     msg_text = await generate_schedule_message(schedule)
     msg_len = len(msg_text)
     if msg_len > 4000:
-        msg_len = 4000
         await msg.answer("Сообщение получилось слишком длинным, "
-                         "так что полностью придется смотреть по ссылке")
+                         "так что придется смотреть по ссылке...",
+                         reply_markup=InlineKeyboardMarkup().add(
+                             InlineKeyboardButton('Проверить на сайте', f"{url}")
+                         ))
+        return
 
-    await msg.answer(f"Вот твое расписание на {period}:\n{msg_text[:msg_len - 1]}",
+    await msg.answer(f"Вот твое расписание на {period}:\n{msg_text}",
                      reply_markup=InlineKeyboardMarkup().add(
                          InlineKeyboardButton('Проверить на сайте', f"{url}")
                      ))
