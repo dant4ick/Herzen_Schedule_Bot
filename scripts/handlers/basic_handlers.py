@@ -54,7 +54,7 @@ async def send_date_schedule(msg: types.Message, schedule_response, period: str)
 
     msg_text = await generate_schedule_message(schedule)
     msg_len = len(msg_text)
-    if msg_text > 4000:
+    if msg_len > 4000:
         msg_len = 4000
         await msg.answer("Сообщение получилось слишком длинным, "
                          "так что полностью придется смотреть по ссылке")
