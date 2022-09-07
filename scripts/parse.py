@@ -87,10 +87,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
             continue
 
         class_names = course.findAll('strong')
-        class_names_number = len(class_names)
-        if class_names_number > 3:
-            class_names_number = 3
-        for class_name in class_names[:class_names_number - 1]:
+        for class_name in class_names:
             class_type = class_name.next.next
             if type(class_name.next) is not NavigableString:
                 class_type = class_type.next
