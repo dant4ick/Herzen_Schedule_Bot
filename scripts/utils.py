@@ -38,12 +38,24 @@ async def generate_schedule_message(schedule):
         msg_text += f"\n🗓{day}\n"
         for course in schedule[day]:
             time = course['time']
+
+            mod = course['mod']
+            if ' ' in mod:
+                mod = mod.split(' ', maxsplit=1)
+                if mod[0].strip('(),') == mod[1].strip('(),'):  # sometimes something like (8.09—6.10, 8.09—6.10) occurs
+                    continue
+                mod = "ℹ " + mod[1][0:-1]
+                if '*' in mod:
+                    mod = mod.split('*')[0]
+            else:
+                mod = ''
+
             name = course['name']
             type = course['type']
             teacher = course['teacher']
             room = course['room']
 
-            msg_text += f"\n⏰ {time}" \
+            msg_text += f"\n⏰ {time} <i>{mod}</i>" \
                         f"\n<b>{name}</b> {type}"
             if teacher:
                 msg_text += f"\n{teacher.strip()}"
@@ -77,7 +89,7 @@ async def get_random_chill_sticker():
 
 async def broadcast_message(user_id: int, message: Message):
     try:
-        await message.send_copy(user_id, disable_notification=True)
+        await message.forward(user_id, disable_notification=True)
 
     except exceptions.BotBlocked:
         logging.error(f"target id:{user_id} - blocked by user")
@@ -92,6 +104,6 @@ async def broadcast_message(user_id: int, message: Message):
     except exceptions.TelegramAPIError:
         logging.exception(f"target id:{user_id} - failed")
     else:
-        logging.info(f"Target [ID:{user_id}]: success")
+        logging.info(f"target id:{user_id}]: success")
         return True
     return False

@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from aiogram import types
-from aiogram.dispatcher import filters
+from aiogram.dispatcher import filters, FSMContext
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 from scripts.bot import db, dp
@@ -12,14 +12,15 @@ from scripts.utils import generate_schedule_message, validate_user, get_random_c
 
 
 @dp.message_handler(commands=['start'], state='*')
-async def start(msg: types.Message):
+async def start(msg: types.Message, state: FSMContext):
+    await state.finish()
     await msg.answer("Привет, я <b>Herzen Schedule Bot</b>! "
                      "Смогу помочь тебе быстро узнать твое <b>расписание</b>.\n"
                      "Для этого тебе нужно пройти опрос, чтобы я знал, где ты учишься. "
                      "На клавиатуре у тебя появилась кнопка \"Настройка группы\".\n"
                      "Нажимай и давай начинать!",
                      reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))
-    logging.info(f"Start: {msg.from_user.id} (@{msg.from_user.username})")
+    logging.info(f"start: {msg.from_user.id} (@{msg.from_user.username})")
 
 
 @dp.message_handler(commands=['help'])

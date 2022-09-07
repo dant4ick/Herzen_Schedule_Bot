@@ -86,30 +86,36 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
         if not course.find('strong'):  # If class not found
             continue
 
-        class_name = course.find('strong')  # TODO: сделать поддержку нескольких пар в одной клетке
-        class_type = class_name.next.next
-        if type(class_name.next) is not NavigableString:
-            class_type = class_type.next
+        class_names = course.findAll('strong')
+        for class_name in class_names:
+            class_type = class_name.next.next
+            if type(class_name.next) is not NavigableString:
+                class_type = class_type.next
 
-        class_teacher = ''
-        class_room = ''
+            class_mod = class_type.next.next
+            if type(class_mod) is not NavigableString:
+                class_mod = ''
 
-        if "дистанционное обучение" not in course.text:  # TODO: сделать поддержку отсутствия параметров
-            class_teacher = class_type.next.next.next
-            class_room = class_teacher.next.next
+            class_teacher = ''
+            class_room = ''
 
-            class_teacher = class_teacher.text
-            class_room = str(class_room.text).strip(", \n")
+            if "дистанционное обучение" not in course.text:
+                class_teacher = class_type.next.next.next
+                class_room = class_teacher.next.next
 
-        if day_name not in schedule_courses.keys():
-            schedule_courses[day_name] = []
-        schedule_courses[day_name].append({
-            'time': class_time,
-            'name': class_name.text,
-            'type': class_type.strip(),
-            'teacher': class_teacher,
-            'room': class_room
-        })
+                class_teacher = class_teacher.text
+                class_room = str(class_room.text).strip(", \n")
+
+            if day_name not in schedule_courses.keys():
+                schedule_courses[day_name] = []
+            schedule_courses[day_name].append({
+                'time': class_time,
+                'mod': class_mod.text.strip(),
+                'name': class_name.text,
+                'type': class_type.strip(),
+                'teacher': class_teacher,
+                'room': class_room
+            })
     if not schedule_courses:
         return {}
     return schedule_courses, url
