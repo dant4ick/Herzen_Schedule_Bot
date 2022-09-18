@@ -9,7 +9,7 @@ class Database:
     def add_user(self, user_id, group_id, sub_group):
         with self.connection:
             self.cursor.execute("INSERT INTO `users` (user_id, group_id, sub_group) VALUES (?, ?, ?)"
-                                "ON CONFLICT (user_id) WHERE user_id = ? "
+                                "ON CONFLICT (user_id) WHERE user_id = ?"
                                 "DO UPDATE SET group_id = ?, sub_group = ?",
                                 (user_id, group_id, sub_group, user_id, group_id, sub_group))
 
@@ -18,6 +18,11 @@ class Database:
             user_data = self.cursor.execute("SELECT group_id, sub_group FROM `users` WHERE user_id = ?",
                                             (user_id,)).fetchone()
         return user_data
+
+    def del_user(self, user_id):
+        with self.connection:
+            self.cursor.execute("DELETE FROM 'users'"
+                                "WHERE user_id = ?", (user_id,))
 
     def get_all_id(self):
         with self.connection:

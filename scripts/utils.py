@@ -85,13 +85,16 @@ async def broadcast_message(user_id: int, message: Message):
 
     except exceptions.BotBlocked:
         logging.error(f"target id:{user_id} - blocked by user")
+        db.del_user(user_id)
     except exceptions.ChatNotFound:
+        db.del_user(user_id)
         logging.error(f"target id:{user_id} - chat not found")
     except exceptions.RetryAfter as e:
         logging.error(f"target id:{user_id} - flood limit, sleep {e.timeout} seconds")
         await asyncio.sleep(e.timeout)
         return await broadcast_message(user_id, message)
     except exceptions.UserDeactivated:
+        db.del_user(user_id)
         logging.error(f"target id:{user_id} - user is deactivated")
     except exceptions.TelegramAPIError:
         logging.exception(f"target id:{user_id} - failed")
