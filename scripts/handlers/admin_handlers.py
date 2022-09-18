@@ -37,7 +37,7 @@ async def confirm_broadcast_message(msg: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['message'] = msg
 
-        await msg.forward(ADMIN_TELEGRAM_ID)
+        await msg.send_copy(ADMIN_TELEGRAM_ID)
         await msg.answer("Вы уверены, что хотите отправить это сообщение всем пользователям?",
                          reply_markup=InlineKeyboardMarkup().add(
                              keyboards.inline_bt_confirm, keyboards.inline_bt_cancel
@@ -54,6 +54,24 @@ async def send_broadcast_message(call: CallbackQuery, state: FSMContext):
             msg = data['message']
         await state.finish()
 
-        for user_id in db.get_all_id():
+        all_id = db.get_all_id()
+        all_id.remove((ADMIN_TELEGRAM_ID,))
+
+        max_counter = len(all_id)
+        quarters = [round(max_counter * 0.25),
+                    round(max_counter * 0.5),
+                    round(max_counter * 0.75),
+                    max_counter
+                    ]
+        msg_counter = 0
+
+        for user_id in all_id:
             await broadcast_message(user_id[0], msg)
-            await asyncio.sleep(.05)
+            msg_counter += 1
+            if msg_counter in quarters:
+                await asyncio.sleep(.5)
+                quarter = quarters.index(msg_counter) + 1
+                await call.message.edit_text(f"Отправлено {msg_counter} из {max_counter} "
+                                             f"<code>[{'#' * quarter}{'-' * (4 - quarter)}]</code>")
+
+            await asyncio.sleep(.1)
