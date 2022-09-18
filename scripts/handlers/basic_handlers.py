@@ -39,8 +39,11 @@ async def send_date_schedule(msg: types.Message, schedule_response, period: str)
     if schedule_response is None:
         await msg.answer("😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.")
 
-    if period == "неделя":
-        period = "этой неделе"
+    if "недел" in period:
+        if "эта" in period:
+            period = "этой неделе"
+        else:
+            period = "следующей неделе"
 
     if not schedule_response:
         await msg.answer(f"🎉На {period} занятий нет, можно отдыхать.")
@@ -49,8 +52,11 @@ async def send_date_schedule(msg: types.Message, schedule_response, period: str)
 
     schedule, url = schedule_response
 
-    if period == "этой неделе":
-        period = "эту неделю"
+    if "недел" in period:
+        if "этой" in period:
+            period = "эту неделю"
+        else:
+            period = "следующую неделю"
 
     msg_text = await generate_schedule_message(schedule)
     msg_len = len(msg_text)
@@ -100,7 +106,7 @@ async def send_tomorrow_schedule(msg: types.Message):
     await send_date_schedule(msg, schedule_response, "завтра")
 
 
-@dp.message_handler(filters.Text(contains='неделя', ignore_case=True))
+@dp.message_handler(filters.Text(contains='эта неделя', ignore_case=True))
 async def send_week_schedule(msg: types.Message):
     if not await validate_user(msg):
         logging.info(f"User validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -108,10 +114,33 @@ async def send_week_schedule(msg: types.Message):
     group_id, sub_group = db.get_user(msg.from_user.id)
 
     today = datetime.today().date()
-    week = today + timedelta(days=6)
 
-    logging.info(f"Attempted send week schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+    week_first = today - timedelta(days=today.weekday())
+    week_last = week_first + timedelta(days=6)
 
-    schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today, date_2=week)
+    logging.info(f"Attempted send curr week schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}")
 
-    await send_date_schedule(msg, schedule_response, "неделя")
+    schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group,
+                                                  date_1=week_first, date_2=week_last)
+
+    await send_date_schedule(msg, schedule_response, "эта неделя")
+
+
+@dp.message_handler(filters.Text(contains='следующая неделя', ignore_case=True))
+async def send_week_schedule(msg: types.Message):
+    if not await validate_user(msg):
+        logging.info(f"User validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+        return
+    group_id, sub_group = db.get_user(msg.from_user.id)
+
+    today = datetime.today().date()
+
+    week_first = today - timedelta(days=today.weekday()) + timedelta(days=7)
+    week_last = week_first + timedelta(days=6)
+
+    logging.info(f"Attempted send next week schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+
+    schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group,
+                                                  date_1=week_first, date_2=week_last)
+
+    await send_date_schedule(msg, schedule_response, "следующая неделя")

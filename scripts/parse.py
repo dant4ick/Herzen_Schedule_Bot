@@ -97,6 +97,15 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
                 class_mod = ''
             else:
                 class_mod = class_mod.text.strip()
+                if ' ' in class_mod:
+                    class_mod = class_mod.split(' ', maxsplit=1)
+                    if class_mod[0].strip('(),') == class_mod[1].strip('(),'):
+                        continue
+                    class_mod = class_mod[1][0:-1]
+                    if '*' in class_mod:
+                        class_mod = class_mod.split('*')[0]
+                else:
+                    class_mod = ''
 
             class_teacher = ''
             class_room = ''

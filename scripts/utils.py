@@ -38,18 +38,9 @@ async def generate_schedule_message(schedule):
         msg_text += f"\n🗓{day}\n"
         for course in schedule[day]:
             time = course['time']
-
             mod = course['mod']
-            if ' ' in mod:
-                mod = mod.split(' ', maxsplit=1)
-                if mod[0].strip('(),') == mod[1].strip('(),'):  # sometimes something like (8.09—6.10, 8.09—6.10) occurs
-                    continue
-                mod = "ℹ " + mod[1][0:-1]
-                if '*' in mod:
-                    mod = mod.split('*')[0]
-            else:
-                mod = ''
-
+            if mod:
+                mod = "ℹ " + mod
             name = course['name']
             type = course['type']
             teacher = course['teacher']
