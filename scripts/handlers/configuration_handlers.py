@@ -185,5 +185,5 @@ async def set_subgroup(call: CallbackQuery, callback_data: dict, state: FSMConte
     await call.message.edit_text("<b>Хорошо, все готово!</b>\n"
                                  "Теперь можешь использовать кнопки, чтобы смотреть расписание!")
     await state.finish()
-    logging.info(f"Add: {call.from_user.id} (@{call.from_user.username})")
+    logging.info(f"add: {call.from_user.id} (@{call.from_user.username})")
     await basic_handlers.get_help(call.message)

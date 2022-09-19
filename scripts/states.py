@@ -12,4 +12,4 @@ class UserData(StatesGroup):
 
 class Broadcast(StatesGroup):
     Message = State()
-    Confirmation = State()
+    MessageType = State()

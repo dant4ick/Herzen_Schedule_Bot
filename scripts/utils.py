@@ -78,11 +78,14 @@ async def get_random_chill_sticker():
     return stickers[random.randint(0, len(stickers) - 1)]
 
 
-async def broadcast_message(user_id: int, message: Message):
+async def broadcast_message(user_id: int, message: Message, message_type: str):
     try:
-        await message.send_copy(user_id, disable_notification=True,
-                                reply_markup=keyboards.kb_main)
-
+        match message_type:
+            case "copy":
+                await message.send_copy(user_id, disable_notification=True,
+                                        reply_markup=keyboards.kb_main)
+            case "forward":
+                await message.forward(user_id, disable_notification=True)
     except exceptions.BotBlocked:
         logging.error(f"target id:{user_id} - blocked by user")
         db.del_user(user_id)
