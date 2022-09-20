@@ -52,6 +52,7 @@ async def generate_schedule_message(schedule):
                 msg_text += f"\n{teacher.strip()}"
             if room:
                 msg_text += f"\n{room.strip()}"
+            msg_text += "\n"
         msg_text += "\n"
     return msg_text
 
@@ -80,12 +81,11 @@ async def get_random_chill_sticker():
 
 async def broadcast_message(user_id: int, message: Message, message_type: str):
     try:
-        match message_type:
-            case "copy":
-                await message.send_copy(user_id, disable_notification=True,
-                                        reply_markup=keyboards.kb_main)
-            case "forward":
-                await message.forward(user_id, disable_notification=True)
+        if message_type in "copy":
+            await message.send_copy(user_id, disable_notification=True,
+                                    reply_markup=keyboards.kb_main)
+        elif message_type in "forward":
+            await message.forward(user_id, disable_notification=True)
     except exceptions.BotBlocked:
         logging.error(f"target id:{user_id} - blocked by user")
         db.del_user(user_id)
