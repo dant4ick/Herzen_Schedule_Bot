@@ -6,7 +6,7 @@ from aiogram.dispatcher import filters, FSMContext
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 from scripts.bot import db, dp
-from scripts.handlers import keyboards
+from scripts import keyboards
 from scripts.parse import parse_date_schedule
 from scripts.utils import generate_schedule_message, validate_user, get_random_chill_sticker
 

@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString
 import json
 
-from config import BASE_DIR
+from data.config import BASE_DIR
 
 SCHEDULE_DATE_URL = r'https://guide.herzen.spb.ru/static/schedule_dates.php?id_group='
 
@@ -42,7 +42,7 @@ def parse_groups():
                     form[stage][course][group] = group_id
             groups[faculty.text].update(forms)
 
-    with open(Path(BASE_DIR / 'groups.json'), 'w', encoding='UTF-8') as output:
+    with open(Path(BASE_DIR / 'data/groups.json'), 'w', encoding='UTF-8') as output:
         json.dump(groups, output, indent=2, ensure_ascii=False)
 
 

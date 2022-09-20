@@ -8,7 +8,7 @@ from scripts.bot import dp, bot
 
 from scripts.parse import parse_groups
 
-from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
+from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
 
 import scripts.handlers
 

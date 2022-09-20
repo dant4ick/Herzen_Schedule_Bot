@@ -142,7 +142,7 @@ dmypy.json
 cython_debug/
 
 ### Generated files
-groups.json
+data/groups.json
 
 ### Database
-user_data.db
+data/user_data.db

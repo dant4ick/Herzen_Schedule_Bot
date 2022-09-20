@@ -6,8 +6,8 @@ from aiogram.types import Message, InlineKeyboardMarkup, CallbackQuery
 
 from scripts.bot import dp, db
 
-from config import ADMIN_TELEGRAM_ID
-from scripts.handlers import keyboards
+from data.config import ADMIN_TELEGRAM_ID
+from scripts import keyboards
 from scripts.states import Broadcast
 from scripts.utils import broadcast_message
 
