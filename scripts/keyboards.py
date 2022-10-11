@@ -26,7 +26,8 @@ kb_settings = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True) \
 
 inline_bt_donate = InlineKeyboardButton('Разовый платеж', url=DONATE_URL)
 inline_bt_subscribe = InlineKeyboardButton('Регулярный платеж', url=SUBSCRIBE_URL)
-inline_kb_donate = InlineKeyboardMarkup().row(inline_bt_donate, inline_bt_subscribe).row(inline_bt_cancel)
+
+inline_kb_donate = InlineKeyboardMarkup().row(inline_bt_donate, inline_bt_subscribe)
 
 bt_admin_broadcast = KeyboardButton('✉ Отправить сообщение всем ✉')
 bt_admin_return = KeyboardButton('◀ Вернуть клавиатуру пользователя ◀')
