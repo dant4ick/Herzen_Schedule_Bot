@@ -1,14 +1,14 @@
-import logging
+from asyncio import get_event_loop
 
 # from aiogram import executor  # uncomment if not using webhooks
 
+from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
 from aiogram.utils.executor import start_webhook
 
 from scripts.bot import dp, bot
 
+from scripts.utils import mailing_schedule
 from scripts.parse import parse_groups
-
-from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
 
 import scripts.handlers
 
@@ -18,18 +18,18 @@ async def on_startup(dp):
 
 
 async def on_shutdown(dp):
-    logging.warning('shutting down..')
-
     await bot.delete_webhook()
 
     await dp.storage.close()
     await dp.storage.wait_closed()
 
-    logging.warning('bye!')
-
 
 if __name__ == "__main__":
     parse_groups()
+
+    loop = get_event_loop()
+    loop.create_task(mailing_schedule('18:00', 'tomorrow'))
+
     # executor.start_polling(dp, skip_updates=True)  # uncomment if not using webhooks
     start_webhook(
         dispatcher=dp,

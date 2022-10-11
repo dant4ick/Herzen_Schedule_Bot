@@ -13,3 +13,8 @@ class UserData(StatesGroup):
 class Broadcast(StatesGroup):
     Message = State()
     MessageType = State()
+
+
+class Mailing(StatesGroup):
+    Subscribe = State()
+    Unsubscribe = State()

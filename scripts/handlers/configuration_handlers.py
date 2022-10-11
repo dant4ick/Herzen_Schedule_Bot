@@ -6,7 +6,6 @@ from aiogram.types import CallbackQuery
 
 from scripts.handlers import basic_handlers
 from scripts import states
-from scripts.bot import dp
 from scripts.utils import *
 
 
@@ -18,8 +17,74 @@ async def cancel_process_cb(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 
 
+@dp.message_handler(filters.Text(contains='настройки', ignore_case=True))
+async def settings(msg: types.Message):
+    await msg.answer("⚙ Давайте настроим...", reply_markup=keyboards.kb_settings)
+
+
+@dp.message_handler(filters.Text(contains='назад', ignore_case=True))
+async def restore_keyboard(msg: types.Message):
+    await msg.answer("👌 Хорошо, больше не настраиваем...", reply_markup=keyboards.kb_main)
+
+
+@dp.message_handler(filters.Text(contains='настройка рассылки', ignore_case=True))
+async def configure_mailing(msg: types.Message):
+    if not await validate_user(msg.from_user.id):
+        logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+        return
+
+    logging.info(f"attempted configure mailing - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+
+    if db.get_mailing_time(msg.from_user.id):
+        await cancel_mailing(msg)
+        return
+
+    await msg.answer("🔔 Хочешь подписаться на <b>рассылку</b> расписания?\n\n"
+                     "Каждый день бот будет начинать рассылать <b>расписание на завтрашний день в 18:00</b>.\n"
+                     "Рассылка может занять некоторое время, обычно около получаса."
+                     "Ты в любой момент сможешь как отписаться, так и подписаться снова.",
+                     reply_markup=InlineKeyboardMarkup().row(keyboards.inline_bt_confirm)
+                     .row(keyboards.inline_bt_cancel))
+    await states.Mailing.Subscribe.set()
+
+
+@dp.callback_query_handler(state=states.Mailing.Subscribe)
+async def set_mailing(call: types.CallbackQuery, state: FSMContext):
+    db.set_mailing_time(call.from_user.id, '18:00')
+    await state.finish()
+    await call.answer()
+
+    logging.info(f"subscribed to mailing - id: {call.from_user.id}, username: @{call.from_user.username}")
+
+    await call.message.edit_text(
+        "🤖 Хорошо, в следующий раз, когда буду рассылать расписание, обязательно напишу и тебе!")
+
+
+async def cancel_mailing(msg: types.Message):
+    await msg.answer("🔕 Хочешь отписаться от <b>рассылки</b> расписания?\n\n"
+                     "Рассылка <b>может занять некоторое время</b>, обычно около получаса."
+                     "Если ждать уже надоело и думаешь, что что-то пошло не так, можешь написать админу,"
+                     "ссылка есть в описании бота.\n"
+                     "Ты в любой момент сможешь как подписаться, так и отписаться снова.",
+                     reply_markup=InlineKeyboardMarkup().row(keyboards.inline_bt_confirm)
+                     .row(keyboards.inline_bt_cancel))
+    await states.Mailing.Unsubscribe.set()
+
+
+@dp.callback_query_handler(state=states.Mailing.Unsubscribe)
+async def stop_mailing(call: types.CallbackQuery, state: FSMContext):
+    db.del_mailing_time(call.from_user.id)
+    await state.finish()
+    await call.answer()
+
+    logging.info(f"unsubscribed from mailing - id: {call.from_user.id}, username: @{call.from_user.username}")
+
+    await call.message.edit_text(
+        "🤖 Хорошо, больше не буду автоматически присылать тебе расписание на завтра.")
+
+
 @dp.message_handler(filters.Text(contains='настройка группы', ignore_case=True))
-async def start_config(msg: types.Message):
+async def start_group_config(msg: types.Message):
     groups = await open_groups_file()
 
     logging.info(f"{msg.from_user.id} (@{msg.from_user.username})")
