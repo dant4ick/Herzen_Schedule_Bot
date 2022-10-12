@@ -14,7 +14,10 @@ import scripts.handlers
 
 
 async def on_startup(dp):
-    await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))
+    loop = get_event_loop()
+    loop.create_task(mailing_schedule('22:25', 'tomorrow'))
+
+    await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks
 
 
 async def on_shutdown(dp):
@@ -27,10 +30,7 @@ async def on_shutdown(dp):
 if __name__ == "__main__":
     parse_groups()
 
-    loop = get_event_loop()
-    loop.create_task(mailing_schedule('18:00', 'tomorrow'))
-
-    # executor.start_polling(dp, skip_updates=True)  # uncomment if not using webhooks
+    # executor.start_polling(dp, on_startup=on_startup, skip_updates=True)  # uncomment if not using webhooks
     start_webhook(
         dispatcher=dp,
         webhook_path=WEBHOOK_PATH,
