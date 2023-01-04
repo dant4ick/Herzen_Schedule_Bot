@@ -17,7 +17,11 @@ async def on_startup(dp):
     loop = get_event_loop()
     loop.create_task(mailing_schedule('22:25', 'tomorrow'))
 
-    await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks
+    if PUBLIC_KEY_PATH:
+        await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks
+        return
+    await bot.set_webhook(WEBHOOK_URL)  # comment if not using webhooks
+
 
 
 async def on_shutdown(dp):
