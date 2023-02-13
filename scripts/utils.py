@@ -68,6 +68,11 @@ async def validate_user(user_id: int):
         return False
     return True
 
+async def throttled(*args, **kwargs):
+    msg = args[0]
+    logging.info(f"throttled: {msg.from_user.id} (@{msg.from_user.username})")
+    await msg.answer(f"Подожди {kwargs['rate']} сек. Я обязательно отвечу, но не так быстро.")
+
 
 async def get_random_chill_sticker():
     stickers = [
@@ -86,6 +91,7 @@ async def send_date_schedule(user_id: int, schedule_response, period: str):
 
     if schedule_response is None:
         await dp.bot.send_message(user_id, "😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.")
+        return
 
     if "недел" in period:
         if "эта" in period:

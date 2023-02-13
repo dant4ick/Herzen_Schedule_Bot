@@ -15,7 +15,7 @@ import scripts.handlers
 
 async def on_startup(dp):
     loop = get_event_loop()
-    loop.create_task(mailing_schedule('18:30', 'tomorrow'))
+    loop.create_task(mailing_schedule('18:00', 'tomorrow'))
 
     if PUBLIC_KEY_PATH:
         await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks

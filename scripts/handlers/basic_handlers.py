@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta
 
 from aiogram import types
@@ -8,7 +9,7 @@ from aiogram.types import ReplyKeyboardMarkup
 from scripts.bot import db, dp
 from scripts import keyboards
 from scripts.parse import parse_date_schedule
-from scripts.utils import validate_user, send_date_schedule
+from scripts.utils import validate_user, send_date_schedule, throttled
 
 
 @dp.message_handler(commands=['start'], state='*')
@@ -34,7 +35,88 @@ async def get_help(msg: types.Message):
                      reply_markup=keyboards.kb_main)
 
 
+@dp.message_handler(commands=['date'])
+@dp.throttled(throttled, rate=5)
+async def send_specific_date_schedule(msg: types.Message):
+    if not await validate_user(msg.from_user.id):
+        logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
+        return
+
+    args = msg.get_args()
+    if not args:
+        await msg.answer("Чтобы вывести расписание на конкретную <b>дату</b>, напиши:\n"
+                         "<code>/date ДД.ММ.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
+                         "Чтобы вывести расписание на конкретный <b>период</b>, напиши:\n"
+                         "<code>/date ДД.MM.ГГГГ-ДД.MM.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
+                         "Мо")
+        return
+
+    day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
+    month_pattern = r"(\.((0[1-9])|(1[0-2])|([1-9]))\b)"
+    year_pattern = r"(\.(\d{4}))"
+    date_pattern = r"({0}{1}({2})?)".format(day_pattern, month_pattern, year_pattern)
+    date_range_pattern = r"({0}\-{1})".format(date_pattern, date_pattern)
+    matches = re.findall(r"((\A|\s|\b)({r}|{d})(\Z|\s))".format(r=date_range_pattern, d=date_pattern), args)
+    dates = [date[0].strip() for date in matches]
+
+    if not dates:
+        await msg.answer(f"Проверь, что ты ввел дату в правильном формате. Чтобы получить помощь, жми /date.")
+        return
+    if len(dates) > 4:
+        await msg.answer(f"Прости, но я не поддерживаю больше, чем 4 даты/периода за один запрос.")
+        return
+
+    dates_formatted = []
+    dates_range_formatted = []
+    for date in dates:
+        try:
+            if re.search(date_range_pattern, date):
+                date_range = date.split("-")
+                for date_range_part in date_range:
+                    part_index = date_range.index(date_range_part)
+                    if not re.search(year_pattern, date_range_part):
+                        date_range_part += f".{datetime.now().year}"
+                    day, month, year = date_range_part.split(".")
+                    date_range[part_index] = datetime.strptime(f"{day.zfill(2)}.{month.zfill(2)}.{year}",
+                                                               "%d.%m.%Y").date()
+                dates_range_formatted.append(date_range)
+            else:
+                if not re.search(year_pattern, date):
+                    date += f".{datetime.now().year}"
+                day, month, year = date.split(".")
+                dates_formatted.append(datetime.strptime(f"{day.zfill(2)}.{month.zfill(2)}.{year}", "%d.%m.%Y").date())
+        except ValueError as e:
+            await msg.answer(f"Не получится посмотреть расписание на ({date})")
+
+    group_id, sub_group = db.get_user(msg.from_user.id)
+
+    for single_date in dates_formatted:
+        schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=single_date)
+        await send_date_schedule(msg.from_user.id, schedule_response, single_date.strftime("(%d.%m.%Y)"))
+
+    if len(dates_range_formatted) > 2:
+        await msg.answer(f"Я не поддерживаю больше, чем 2 периода за один запрос. Вывожу первые два...")
+        dates_range_formatted = dates_range_formatted[:2]
+
+    for dates_range in dates_range_formatted:
+        days_range = (dates_range[1] - dates_range[0]).days
+        if days_range < 0:
+            await msg.answer(f"Первая дата ({dates_range[0].strftime('%d.%m.%Y')}) "
+                             f"больше, чем вторая ({dates_range[1].strftime('%d.%m.%Y')}).")
+            continue
+        if days_range > 8:
+            await msg.answer(f"Период ({dates_range[0].strftime('%d.%m.%Y')} - "
+                             f"{dates_range[1].strftime('%d.%m.%Y')}) больше восьми дней.\n"
+                             f"Попробуй разделить его на несколько периодов.")
+            continue
+        schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group,
+                                                      date_1=dates_range[0], date_2=dates_range[1])
+        await send_date_schedule(msg.from_user.id, schedule_response, f'({dates_range[0].strftime("%d.%m.%Y")} - '
+                                                                      f'{dates_range[1].strftime("%d.%m.%Y")})')
+
+
 @dp.message_handler(filters.Text(contains='сегодня', ignore_case=True))
+@dp.throttled(throttled, rate=2)
 async def send_today_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -51,6 +133,7 @@ async def send_today_schedule(msg: types.Message):
 
 
 @dp.message_handler(filters.Text(contains='завтра', ignore_case=True))
+@dp.throttled(throttled, rate=2)
 async def send_tomorrow_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -67,6 +150,7 @@ async def send_tomorrow_schedule(msg: types.Message):
 
 
 @dp.message_handler(filters.Text(contains='эта неделя', ignore_case=True))
+@dp.throttled(throttled, rate=5)
 async def send_curr_week_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -87,6 +171,7 @@ async def send_curr_week_schedule(msg: types.Message):
 
 
 @dp.message_handler(filters.Text(contains='следующая неделя', ignore_case=True))
+@dp.throttled(throttled, rate=5)
 async def send_next_week_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
