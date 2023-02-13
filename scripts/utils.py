@@ -100,7 +100,7 @@ async def send_date_schedule(user_id: int, schedule_response, period: str):
             period = "следующей неделе"
 
     if not schedule_response:
-        await dp.bot.send_message(user_id, f"🎉На {period} занятий нет, можно отдыхать.")
+        await dp.bot.send_message(user_id, f"🎉 На {period} занятий нет, можно отдыхать.")
         await dp.bot.send_sticker(user_id, await get_random_chill_sticker())
         return
 
