@@ -90,6 +90,9 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
         class_names = course.findAll('strong')
         for class_name in class_names:
             class_type = class_name.next.next
+
+            if class_name.find('br'):
+                class_type = class_type.next.next
             if type(class_name.next) is not NavigableString:
                 class_type = class_type.next
 
@@ -121,7 +124,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
             schedule_courses[day_name].append({
                 'time': class_time,
                 'mod': class_mod,
-                'name': class_name.text,
+                'name': class_name.text.strip(),
                 'type': class_type.strip(),
                 'teacher': class_teacher,
                 'room': class_room
