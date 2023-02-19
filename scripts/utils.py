@@ -142,7 +142,7 @@ async def mailing_schedule(mailing_time_str: str, schedule_date: str):
         mailing_list = db.get_mailing_list()
         for user_id, mailing_time in mailing_list:
             await broadcast_schedule(user_id, message_type=schedule_date)
-            await asyncio.sleep(.1)
+            await asyncio.sleep(.5)
         await asyncio.sleep(1)
 
 
