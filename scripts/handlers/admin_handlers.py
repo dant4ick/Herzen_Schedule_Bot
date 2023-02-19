@@ -1,4 +1,5 @@
 import asyncio
+from datetime import timedelta
 
 from aiogram import types
 from aiogram.dispatcher import filters, FSMContext
@@ -66,7 +67,9 @@ async def send_broadcast_message(call: CallbackQuery, state: FSMContext):
                     ]
         msg_counter = 0
 
+        await call.bot.send_message(ADMIN_TELEGRAM_ID, f"Это займет примерно {timedelta(seconds = max_counter * 0.5)}.")
         await call.message.edit_text(f"Хорошо, отправляю {max_counter} сообщений...")
+
         for user_id in all_id:
             await broadcast_message(user_id[0], msg, msg_type)
             msg_counter += 1
@@ -75,4 +78,4 @@ async def send_broadcast_message(call: CallbackQuery, state: FSMContext):
                 quarter = quarters.index(msg_counter) + 1
                 await call.message.edit_text(f"Отправлено {msg_counter} из {max_counter} "
                                              f"<code>[{'#' * quarter}{'-' * (4 - quarter)}]</code>")
-            await asyncio.sleep(.1)
+            await asyncio.sleep(.5)
