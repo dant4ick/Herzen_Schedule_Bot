@@ -8,7 +8,7 @@ from aiogram.utils.executor import start_webhook
 from scripts.bot import dp, bot
 
 from scripts.utils import mailing_schedule
-from scripts.parse import parse_groups
+from scripts.parse import parse_groups, clear_schedule_cache
 
 import scripts.handlers
 
@@ -16,6 +16,8 @@ import scripts.handlers
 async def on_startup(dp):
     loop = get_event_loop()
     loop.create_task(mailing_schedule('18:00', 'tomorrow'))
+
+    loop.create_task(clear_schedule_cache('20:00'))
 
     if PUBLIC_KEY_PATH:
         await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks

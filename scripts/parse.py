@@ -1,11 +1,15 @@
+import asyncio
 import logging
 import re
+from datetime import datetime, time, timedelta
 from pathlib import Path
 
 import requests as request
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString
 import json
+
+from async_lru import alru_cache
 
 from data.config import BASE_DIR
 
@@ -47,6 +51,7 @@ def parse_groups():
         json.dump(groups, output, indent=2, ensure_ascii=False)
 
 
+@alru_cache(maxsize=512)
 async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if date_1 and not date_2:
         date_2 = date_1
@@ -132,3 +137,20 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if not schedule_courses:
         return {}
     return schedule_courses, url
+
+
+async def clear_schedule_cache(time_to_clear: str):
+    while True:
+        now = datetime.now()
+        wait_for = time.fromisoformat(time_to_clear)
+
+        now_delta = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second)
+        wait_for_delta = timedelta(hours=wait_for.hour, minutes=wait_for.minute, seconds=wait_for.second)
+        pause = (wait_for_delta - now_delta).seconds
+
+        await asyncio.sleep(pause)
+        logging.info(f"starting to clear schedule cache")
+        logging.info(parse_date_schedule.cache_info())
+        parse_date_schedule.cache_clear()
+        logging.info(parse_date_schedule.cache_info())
+        await asyncio.sleep(1)
