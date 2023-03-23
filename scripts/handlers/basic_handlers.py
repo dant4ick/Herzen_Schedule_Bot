@@ -9,7 +9,8 @@ from aiogram.types import ReplyKeyboardMarkup
 from scripts.bot import db, dp
 from scripts import keyboards
 from scripts.parse import parse_date_schedule
-from scripts.utils import validate_user, send_date_schedule, throttled
+from scripts.utils import validate_user, throttled
+from scripts.message_handlers import send_date_schedule
 
 
 @dp.message_handler(commands=['start'], state='*')
@@ -20,7 +21,7 @@ async def start(msg: types.Message, state: FSMContext):
                      "Для этого тебе нужно пройти опрос, чтобы я знал, где ты учишься. "
                      "На клавиатуре у тебя появилась кнопка \"Настройка группы\".\n"
                      "Нажимай и давай начинать! Если промахнешься по кнопкам, снизу всегда есть \"Отмена\"",
-                     reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_settings))
+                     reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))
     logging.info(f"start: {msg.from_user.id} (@{msg.from_user.username})")
 
 
@@ -88,7 +89,7 @@ async def send_specific_date_schedule(msg: types.Message):
                     date += f".{datetime.now().year}"
                 day, month, year = date.split(".")
                 dates_formatted.append(datetime.strptime(f"{day.zfill(2)}.{month.zfill(2)}.{year}", "%d.%m.%Y").date())
-        except ValueError as e:
+        except ValueError:
             await msg.answer(f"Не получится посмотреть расписание на ({date})")
 
     group_id, sub_group = db.get_user(msg.from_user.id)

@@ -7,7 +7,7 @@ from aiogram.utils.executor import start_webhook
 
 from scripts.bot import dp, bot
 
-from scripts.utils import mailing_schedule
+from scripts.message_handlers import mailing_schedule
 from scripts.parse import parse_groups, clear_schedule_cache
 
 import scripts.handlers

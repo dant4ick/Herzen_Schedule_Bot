@@ -10,7 +10,7 @@ from scripts.bot import dp, db
 from data.config import ADMIN_TELEGRAM_ID
 from scripts import keyboards
 from scripts.states import Broadcast
-from scripts.utils import broadcast_message
+from scripts.message_handlers import broadcast_message
 
 
 @dp.message_handler(commands=['admin'])
