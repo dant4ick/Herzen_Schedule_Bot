@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from aiogram import types
 from aiogram.dispatcher import filters, FSMContext
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from scripts.bot import db, dp
 from scripts import keyboards
@@ -34,6 +34,20 @@ async def get_help(msg: types.Message):
                      "Что-то не понятно? Столкнулись с проблемой? "
                      "По любому поводу можешь написать разработчику, ссылка есть в описании бота.\n\n"
                      "Хочешь поддержать бота и его разработчика - /donate",
+                     reply_markup=keyboards.kb_main)
+
+
+@dp.message_handler(commands=['hide'])
+@dp.throttled(throttled, rate=2)
+async def hide_keyboard(msg: types.Message):
+    await msg.answer("Окей, клавиатура скрыта. Чтобы вернуть ее, используй /show.",
+                     reply_markup=ReplyKeyboardRemove())
+
+
+@dp.message_handler(commands=['show'])
+@dp.throttled(throttled, rate=2)
+async def show_keyboard(msg: types.Message):
+    await msg.answer("Окей, вернул клавиатуру. Чтобы скрыть ее, используй /hide.",
                      reply_markup=keyboards.kb_main)
 
 
