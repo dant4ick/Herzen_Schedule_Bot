@@ -165,5 +165,6 @@ async def get_random_chill_sticker():
         'CAACAgIAAxkBAAEXpdtjD6-dRMqPJRtw405KJlvIcFiPVwACRBQAAgyeKEjz0Nb_G-GZ4SkE',  # Emoji party
         'CAACAgIAAxkBAAEXpd9jD6-9IxLBW0nmsjZ3_EYm8Q9dSgACIhQAAraw0EtoiZUwd4T4UykE',  # Pear party
         'CAACAgIAAxkBAAEXpeNjD6_GQ3TKcVOe0oKVNJoygASHXwACbQEAAiI3jgQl87gUwpqm8ikE',  # Kolobok party
+        'CAACAgIAAxkBAAEf9txkQA2ZDDdefP6poUYQUQ9iE3AL3AAC7hMAAhljSElGyHkrfgiHTC8E',  # Minecraft piglin
     ]
     return stickers[random.randint(0, len(stickers) - 1)]
