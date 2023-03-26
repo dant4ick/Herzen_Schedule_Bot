@@ -38,7 +38,7 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
 
     if not schedule_response:
         await dp.bot.send_message(user_id, f"{header}\n\n"
-                                           f"🎉 На {period} занятий нет, можно отдыхать."
+                                           f"🎉 На {period} занятий нет, можно отдыхать.\n"
                                            f"{reminder}")
         await dp.bot.send_sticker(user_id, await get_random_chill_sticker())
         return
@@ -56,7 +56,7 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
     if msg_len > 4000:
         await dp.bot.send_message(user_id, f"{header}\n\n"
                                            f"Сообщение получилось слишком длинным, "
-                                           f"так что придется смотреть по ссылке..."
+                                           f"так что придется смотреть по ссылке...\n"
                                            f"{reminder}",
                                   reply_markup=InlineKeyboardMarkup().add(
                                       InlineKeyboardButton('Проверить на сайте', f"{url}")
