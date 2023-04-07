@@ -22,9 +22,9 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
         logging.info("An error occurred, cache cleared")
         return
 
-    if random.randint(0, 100) < 15:
+    if random.randint(0, 100) < 5:
         reminder = "<i>\n😉 Не забывай про возможность поддержать разработчика через /donate.</i>"
-    elif random.randint(0, 100) < 15:
+    elif random.randint(0, 100) < 10:
         reminder = "<i>\n🤖 Нравится бот? Расскажи про него другим:\n</i>" \
                    r"https://t.me/schedule_herzen_bot"
     else:
