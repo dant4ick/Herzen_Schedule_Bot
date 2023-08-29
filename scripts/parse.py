@@ -20,6 +20,9 @@ def parse_groups():
     groups = {}
 
     schedule = request.get(r'https://guide.herzen.spb.ru/static/schedule.php')
+    if not schedule.ok:
+        return
+
     soup = BeautifulSoup(schedule.text, 'html.parser')
 
     for faculty in soup.find('h1').find_next_siblings('h3'):

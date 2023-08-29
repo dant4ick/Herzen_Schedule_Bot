@@ -6,6 +6,7 @@ from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUB
 from aiogram.utils.executor import start_webhook
 
 from scripts.bot import dp, bot
+from scripts.log_manager import log_rotation_and_archiving
 
 from scripts.message_handlers import mailing_schedule
 from scripts.parse import parse_groups, clear_schedule_cache
@@ -15,8 +16,11 @@ import scripts.handlers
 
 async def on_startup(dp):
     loop = get_event_loop()
-    loop.create_task(mailing_schedule('18:00', 'tomorrow'))
+    loop.create_task(log_rotation_and_archiving())
 
+    parse_groups()
+
+    loop.create_task(mailing_schedule('18:00', 'tomorrow'))
     loop.create_task(clear_schedule_cache('20:00'))
 
     if PUBLIC_KEY_PATH:
@@ -34,8 +38,6 @@ async def on_shutdown(dp):
 
 
 if __name__ == "__main__":
-    parse_groups()
-
     # executor.start_polling(dp, on_startup=on_startup, skip_updates=True)  # uncomment if not using webhooks
     start_webhook(
         dispatcher=dp,

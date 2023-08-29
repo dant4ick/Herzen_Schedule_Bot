@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Telegram data
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-ADMIN_TELEGRAM_ID = int(os.environ.get('ADMIN_TELEGRAM_ID'))
+ADMIN_TELEGRAM_ID = int(os.environ.get('ADMIN_TELEGRAM_ID', '123456789'))
 
 
 # Webhook data
@@ -13,7 +13,7 @@ WEBHOOK_PATH = '/Herzen_Schedule_Bot'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
 WEBAPP_HOST = 'localhost'  # or ip
-WEBAPP_PORT = int(os.environ.get('WEBAPP_PORT'))
+WEBAPP_PORT = int(os.environ.get('WEBAPP_PORT', '5000'))
 
 # for self-signed certificates
 PUBLIC_KEY_PATH = os.environ.get('PUBLIC_KEY_PATH')

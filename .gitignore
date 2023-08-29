@@ -143,6 +143,7 @@ cython_debug/
 
 ### Generated files
 data/groups.json
+logs/*.tar.gz
 
 ### Database
 data/user_data.db
