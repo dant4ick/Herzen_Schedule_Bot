@@ -36,14 +36,18 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
         else:
             period = "следующей неделе"
 
-    if not schedule_response:
+    schedule, url = schedule_response
+
+    if not schedule:
         await dp.bot.send_message(user_id, f"{header}\n\n"
                                            f"🎉 На {period} занятий нет, можно отдыхать.\n"
-                                           f"{reminder}")
+                                           f"{reminder}",
+                                  reply_markup=InlineKeyboardMarkup().add(
+                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
+                                  ))
+        await asyncio.sleep(0.5)
         await dp.bot.send_sticker(user_id, await get_random_chill_sticker())
         return
-
-    schedule, url = schedule_response
 
     if "недел" in period:
         if "этой" in period:
@@ -156,6 +160,7 @@ async def broadcast_message(user_id: int, message: Message, message_type: str):
         logging.info(f"target id:{user_id}: success")
         return True
     return False
+
 
 async def get_random_chill_sticker():
     stickers = [

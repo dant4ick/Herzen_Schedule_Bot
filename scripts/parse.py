@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import re
 from pathlib import Path
@@ -68,7 +69,10 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     soup = BeautifulSoup(schedule_response.content, features="html.parser")
 
     if soup.find('a', string='другую группу'):  # No classes at that period
-        return {}
+        last_summer_day = datetime.datetime(date_1.year, 8, 31).date()
+        if date_1 <= last_summer_day < date_2:
+            return await parse_date_schedule(group, sub_group, last_summer_day + datetime.timedelta(days=1), date_2)
+        return {}, url
 
     if soup.find('tbody'):
         courses_column = soup.find('tbody').findAll('tr')
@@ -138,7 +142,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
                 'room': class_room
             })
     if not schedule_courses:
-        return {}
+        return {}, url
     return schedule_courses, url
 
 
