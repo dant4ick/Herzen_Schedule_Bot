@@ -217,12 +217,12 @@ async def set_group(call: CallbackQuery, callback_data: dict, state: FSMContext)
 
     await call.message.edit_text("Если такая есть, выберите <b>номер подгруппы.</b> "
                                  "Если отсутствует, нажмите кнопку <b>\"Без подгруппы\"</b>.",
-                                 reply_markup=InlineKeyboardMarkup().add(
+                                 reply_markup=InlineKeyboardMarkup().row(
                                      InlineKeyboardButton('Без подгруппы', callback_data=cb_data.new(num=0)),
+                                 ).add(
                                      InlineKeyboardButton('1', callback_data=cb_data.new(num=1)),
                                      InlineKeyboardButton('2', callback_data=cb_data.new(num=2)),
                                      InlineKeyboardButton('3', callback_data=cb_data.new(num=3)),
-
                                  ).row(
                                      InlineKeyboardButton('Отменить', callback_data='cancel')
                                  ))
