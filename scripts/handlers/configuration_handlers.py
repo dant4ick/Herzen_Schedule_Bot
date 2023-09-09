@@ -220,7 +220,9 @@ async def set_group(call: CallbackQuery, callback_data: dict, state: FSMContext)
                                  reply_markup=InlineKeyboardMarkup().add(
                                      InlineKeyboardButton('Без подгруппы', callback_data=cb_data.new(num=0)),
                                      InlineKeyboardButton('1', callback_data=cb_data.new(num=1)),
-                                     InlineKeyboardButton('2', callback_data=cb_data.new(num=2))
+                                     InlineKeyboardButton('2', callback_data=cb_data.new(num=2)),
+                                     InlineKeyboardButton('3', callback_data=cb_data.new(num=3)),
+
                                  ).row(
                                      InlineKeyboardButton('Отменить', callback_data='cancel')
                                  ))
@@ -237,7 +239,7 @@ async def set_subgroup(call: CallbackQuery, callback_data: dict, state: FSMConte
 
     logging.info(f"{call.from_user.id} (@{call.from_user.username}) - {sub_group}")
 
-    if sub_group not in range(3):
+    if sub_group not in range(4):
         logging.info(
             f"fail: {call.from_user.id} (@{call.from_user.username})")
         await call.message.edit_text("<b>Упс! Что-то пошло не так, пока мы устанавливали подгруппу...</b>\n"

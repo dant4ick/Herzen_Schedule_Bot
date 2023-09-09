@@ -55,9 +55,29 @@ async def generate_schedule_message(schedule):
     return msg_text
 
 
+def extract_group_numbers(data):
+    group_numbers = []
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            group_numbers.extend(extract_group_numbers(value))
+    elif isinstance(data, str):
+        try:
+            int(data)
+            group_numbers.append(data)
+        except ValueError:
+            pass
+
+    return group_numbers
+
+
 async def validate_user(user_id: int):
     user_data = db.get_user(user_id)
-    if not user_data:
+
+    groups_dict = await open_groups_file()
+    groups_list = extract_group_numbers(groups_dict)
+
+    if not user_data or str(user_data[0]) not in groups_list:
         await dp.bot.send_message(user_id, "Кажется, я не знаю, где ты учишься. "
                                            "Пройди опрос, чтобы я мог вывести твое расписание.",
                                   reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))

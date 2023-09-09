@@ -22,6 +22,7 @@ def parse_groups():
 
     schedule = request.get(r'https://guide.herzen.spb.ru/static/schedule.php')
     if not schedule.ok:
+        logging.info("can't parse groups list: page is not accessible")
         return
 
     soup = BeautifulSoup(schedule.text, 'html.parser')
@@ -51,8 +52,14 @@ def parse_groups():
                     form[stage][course][group] = group_id
             groups[faculty.text].update(forms)
 
+    if not groups:
+        logging.info("can't parse groups list: list is empty")
+        return
+
     with open(Path(BASE_DIR / 'data/groups.json'), 'w', encoding='UTF-8') as output:
         json.dump(groups, output, indent=2, ensure_ascii=False)
+
+    logging.info(f"parsed groups successfully")
 
 
 @alru_cache(maxsize=2048)
@@ -91,7 +98,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
 
         course = courses_column[class_number].findAll('td')
 
-        if (len(course) > 1) and sub_group != 0:  # If multiple classes at the same time
+        if (len(course) > 1) and sub_group and (0 < sub_group <= len(course)):  # If multiple classes at the same time
             course = course[sub_group - 1]
         else:
             course = course[0]
@@ -160,3 +167,16 @@ async def clear_schedule_cache(time_to_clear: str = None):
 
         if not time_to_clear:
             break
+
+
+async def update_groups(time_to_update: str = None):
+    while True:
+        logging.info(f"starting to update groups")
+        parse_groups()
+
+        if not time_to_update:
+            break
+        await asyncio.sleep(1)
+
+        pause = await seconds_before_iso_time(time_to_update)
+        await asyncio.sleep(pause)

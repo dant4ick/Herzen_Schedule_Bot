@@ -9,7 +9,7 @@ from scripts.bot import dp, bot
 from scripts.log_manager import log_rotation_and_archiving
 
 from scripts.message_handlers import mailing_schedule
-from scripts.parse import parse_groups, clear_schedule_cache
+from scripts.parse import clear_schedule_cache, update_groups
 
 import scripts.handlers
 
@@ -18,7 +18,7 @@ async def on_startup(dp):
     loop = get_event_loop()
     loop.create_task(log_rotation_and_archiving())
 
-    parse_groups()
+    loop.create_task(update_groups('00:00'))
 
     loop.create_task(mailing_schedule('18:00', 'tomorrow'))
     loop.create_task(clear_schedule_cache('20:00'))
