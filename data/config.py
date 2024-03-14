@@ -22,8 +22,8 @@ if PUBLIC_KEY_PATH:
 
 
 # Donate urls
-DONATE_URL = os.environ.get('DONATE_URL')
-SUBSCRIBE_URL = os.environ.get('SUBSCRIBE_URL')
+DONATE_URL = os.environ.get('DONATE_URL', r'https://pay.cloudtips.ru/p/0a19cb8e')
+SUBSCRIBE_URL = os.environ.get('SUBSCRIBE_URL', r'https://boosty.to/dant4ick')
 
 
 # Path to run.py dir

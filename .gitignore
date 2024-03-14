@@ -1,6 +1,10 @@
 ### JetBrains
 .idea
 
+### Run config
+start.sh
+launch.json
+
 ### Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/

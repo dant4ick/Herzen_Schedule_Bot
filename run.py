@@ -1,6 +1,8 @@
+import argparse
+
 from asyncio import get_event_loop
 
-# from aiogram import executor  # uncomment if not using webhooks
+from aiogram import executor
 
 from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
 from aiogram.utils.executor import start_webhook
@@ -23,10 +25,13 @@ async def on_startup(dp):
     loop.create_task(mailing_schedule('18:00', 'tomorrow'))
     loop.create_task(clear_schedule_cache('20:00'))
 
-    if PUBLIC_KEY_PATH:
-        await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))  # comment if not using webhooks
+    if debug_mode:
         return
-    await bot.set_webhook(WEBHOOK_URL)  # comment if not using webhooks
+
+    if PUBLIC_KEY_PATH:
+        await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))
+        return
+    await bot.set_webhook(WEBHOOK_URL)
 
 
 
@@ -38,13 +43,20 @@ async def on_shutdown(dp):
 
 
 if __name__ == "__main__":
-    # executor.start_polling(dp, on_startup=on_startup, skip_updates=True)  # uncomment if not using webhooks
-    start_webhook(
-        dispatcher=dp,
-        webhook_path=WEBHOOK_PATH,
-        on_startup=on_startup,
-        on_shutdown=on_shutdown,
-        skip_updates=True,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT,
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true', help='Run the bot in debug mode')
+    args = parser.parse_args()
+
+    debug_mode = args.debug
+    if debug_mode:
+        executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
+    else:
+        start_webhook(
+            dispatcher=dp,
+            webhook_path=WEBHOOK_PATH,
+            on_startup=on_startup,
+            on_shutdown=on_shutdown,
+            skip_updates=True,
+            host=WEBAPP_HOST,
+            port=WEBAPP_PORT,
+        )
