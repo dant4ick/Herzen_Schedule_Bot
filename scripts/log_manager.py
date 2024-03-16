@@ -7,7 +7,7 @@ from data.config import BASE_DIR
 
 # Function to create a new log folder based on date
 def create_log_folder():
-    log_folder = BASE_DIR / 'logs' / datetime.now().strftime('%d-%m-%Y')
+    log_folder = BASE_DIR / 'logs' / datetime.now().strftime('%Y-%m-%d')
     if not log_folder.exists():
         log_folder.mkdir(parents=True)
     return log_folder
@@ -35,7 +35,7 @@ def archive_old_logs(days: int = 7):
     logs_folder = BASE_DIR / 'logs'
 
     for log_folder in logs_folder.iterdir():
-        if log_folder.is_dir() and datetime.strptime(log_folder.name, '%d-%m-%Y') < old_logs_time:
+        if log_folder.is_dir() and datetime.strptime(log_folder.name, '%Y-%m-%d') < old_logs_time:
             archive_path = log_folder.with_suffix('.tar.gz')
             with tarfile.open(archive_path, 'w:gz') as archive:
                 archive.add(log_folder, arcname=log_folder.name)
