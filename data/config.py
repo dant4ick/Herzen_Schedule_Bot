@@ -9,7 +9,7 @@ ADMIN_TELEGRAM_ID = int(os.environ.get('ADMIN_TELEGRAM_ID', '123456789'))
 
 # Webhook data
 WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
-WEBHOOK_PATH = '/Herzen_Schedule_Bot'
+WEBHOOK_PATH = f'/{TELEGRAM_TOKEN}'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
 WEBAPP_HOST = 'localhost'  # or ip
