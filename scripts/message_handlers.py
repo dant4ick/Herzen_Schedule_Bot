@@ -16,8 +16,17 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
     logging.debug(f"response: {schedule_response}")
 
     if schedule_response is None:
+        return
+    
+    schedule, url = schedule_response
+
+    if schedule is None:
         await dp.bot.send_message(user_id, f"{header}\n\n😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.\n"
-                                           f"Если ничего не меняется, напиши админу, ссылка есть в описании бота.")
+                                           f"Если на сайте по кнопке ниже тоже ничего не работает, бот тут ни при чем. "
+                                           f"Если сайт показывает все исправно, напиши админу - ссылка в профиле бота.",
+                                  reply_markup=InlineKeyboardMarkup().add(
+                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
+                                  ))
         await clear_schedule_cache()
         logging.info("An error occurred, cache cleared")
         return
@@ -35,8 +44,6 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
             period = "этой неделе"
         else:
             period = "следующей неделе"
-
-    schedule, url = schedule_response
 
     if not schedule:
         await dp.bot.send_message(user_id, f"{header}\n\n"

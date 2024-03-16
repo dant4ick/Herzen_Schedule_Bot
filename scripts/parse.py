@@ -84,7 +84,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if soup.find('tbody'):
         courses_column = soup.find('tbody').findAll('tr')
     else:
-        return
+        return None, url
 
     schedule_courses = {}
     day_name = ''
