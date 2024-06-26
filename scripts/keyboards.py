@@ -26,8 +26,12 @@ kb_settings = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True) \
 
 inline_bt_donate = InlineKeyboardButton('Разовый платеж', url=DONATE_URL)
 inline_bt_subscribe = InlineKeyboardButton('Регулярный платеж', url=SUBSCRIBE_URL)
+inline_bt_crypto = InlineKeyboardButton('Криптовалюты', callback_data='crypto')
 
-inline_kb_donate = InlineKeyboardMarkup().row(inline_bt_donate, inline_bt_subscribe)
+inline_kb_donate = InlineKeyboardMarkup().row(inline_bt_donate, inline_bt_subscribe).row(inline_bt_crypto)
+
+_crypto_amount_options = {"150р": 150, "300р": 300, "500р": 500, "1000р": 1000}
+inline_kb_donate_amount = InlineKeyboardMarkup().add(*[InlineKeyboardButton(f'{key}', callback_data=f'crypto_{value}') for key, value in _crypto_amount_options.items()]).row(inline_bt_cancel)
 
 bt_admin_broadcast = KeyboardButton('✉ Отправить сообщение всем ✉')
 bt_admin_return = KeyboardButton('◀ Вернуть клавиатуру пользователя ◀')

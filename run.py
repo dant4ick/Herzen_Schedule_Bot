@@ -7,7 +7,7 @@ from aiogram import executor
 from data.config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, PUBLIC_KEY_PATH
 from aiogram.utils.executor import start_webhook
 
-from scripts.bot import dp, bot
+from scripts.bot import dp, bot, crypto
 from scripts.log_manager import log_rotation_and_archiving
 
 from scripts.message_handlers import mailing_schedule
@@ -18,16 +18,16 @@ import scripts.handlers
 
 async def on_startup(dp):
     loop = get_event_loop()
-    loop.create_task(log_rotation_and_archiving())
-
     loop.create_task(update_groups('00:00'))
 
     loop.create_task(mailing_schedule('18:00', 'tomorrow'))
     loop.create_task(clear_schedule_cache('20:00'))
-
+    
     if debug_mode:
         return
 
+    loop.create_task(log_rotation_and_archiving())
+    
     if PUBLIC_KEY_PATH:
         await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))
         return
@@ -40,6 +40,8 @@ async def on_shutdown(dp):
 
     await dp.storage.close()
     await dp.storage.wait_closed()
+    
+    await crypto.close()
 
 
 if __name__ == "__main__":
