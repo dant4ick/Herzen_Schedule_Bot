@@ -14,13 +14,13 @@ from async_lru import alru_cache
 from data.config import BASE_DIR
 from scripts.utils import seconds_before_iso_time
 
-SCHEDULE_DATE_URL = r'https://guide.herzen.spb.ru/static/schedule_dates.php?id_group='
+SCHEDULE_DATE_URL = r'https://old-guide.herzen.spb.ru/static/schedule_dates.php?id_group='
 
 
 def parse_groups():
     groups = {}
 
-    schedule = request.get(r'https://guide.herzen.spb.ru/static/schedule.php')
+    schedule = request.get(r'https://old-guide.herzen.spb.ru/static/schedule.php')
     if not schedule.ok:
         logging.info("can't parse groups list: page is not accessible")
         return
