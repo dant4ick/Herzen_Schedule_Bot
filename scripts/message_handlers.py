@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 from datetime import timedelta, datetime
+from typing import List
 
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils import exceptions
@@ -12,7 +13,7 @@ from scripts.parse import clear_schedule_cache, parse_date_schedule
 from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message
 
 
-async def send_date_schedule(user_id: int, schedule_response, period: str, header: str = ""):
+async def send_date_schedule(user_id: int, schedule_response, period: str, header: str = "", buttons: List[InlineKeyboardButton] = []):
     logging.debug(f"response: {schedule_response}")
 
     if schedule_response is None:
@@ -20,13 +21,15 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
     
     schedule, url = schedule_response
 
+    reply_markup = InlineKeyboardMarkup().add(
+                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
+                                  ).add(*buttons)
+
     if schedule is None:
         await dp.bot.send_message(user_id, f"{header}\n\n😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.\n"
                                            f"Если на сайте по кнопке ниже тоже ничего не работает, бот тут ни при чем. "
                                            f"Если сайт показывает все исправно, напиши админу - ссылка в профиле бота.",
-                                  reply_markup=InlineKeyboardMarkup().add(
-                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
-                                  ))
+                                  reply_markup=reply_markup)
         await clear_schedule_cache()
         logging.info("An error occurred, cache cleared")
         return
@@ -49,9 +52,7 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
         await dp.bot.send_message(user_id, f"{header}\n\n"
                                            f"🎉 На {period} занятий нет, можно отдыхать.\n"
                                            f"{reminder}",
-                                  reply_markup=InlineKeyboardMarkup().add(
-                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
-                                  ))
+                                  reply_markup=reply_markup)
         await asyncio.sleep(0.5)
         await dp.bot.send_sticker(user_id, await get_random_chill_sticker())
         return
@@ -69,17 +70,13 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
                                            f"Сообщение получилось слишком длинным, "
                                            f"так что придется смотреть по ссылке...\n"
                                            f"{reminder}",
-                                  reply_markup=InlineKeyboardMarkup().add(
-                                      InlineKeyboardButton('Проверить на сайте', f"{url}")
-                                  ))
+                                  reply_markup=reply_markup)
         return
 
     await dp.bot.send_message(user_id, f"{header}\n\n"
                                        f"Вот твое расписание на {period}:\n{msg_text}"
                                        f"{reminder}",
-                              reply_markup=InlineKeyboardMarkup().add(
-                                  InlineKeyboardButton('Проверить на сайте', f"{url}")
-                              ))
+                              reply_markup=reply_markup)
 
 
 async def mailing_schedule(mailing_time: str, schedule_date: str):
@@ -102,6 +99,8 @@ async def broadcast_schedule(user_id: int, message_type: str):
             return
         group_id, sub_group = db.get_user(user_id)
 
+        header_text = "👋 Привет, это рассылка расписания."
+
         if message_type in "today":
             today = datetime.today().date()
 
@@ -109,7 +108,7 @@ async def broadcast_schedule(user_id: int, message_type: str):
 
             schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=today)
             await send_date_schedule(user_id, schedule_response, "сегодня",
-                                     header="👋 Привет, это рассылка расписания.")
+                                     header=header_text, buttons=[keyboards.inline_bt_unsub])
         elif message_type in "tomorrow":
             tomorrow = datetime.today().date() + timedelta(days=1)
 
@@ -117,7 +116,7 @@ async def broadcast_schedule(user_id: int, message_type: str):
 
             schedule_response = await parse_date_schedule(group=group_id, sub_group=sub_group, date_1=tomorrow)
             await send_date_schedule(user_id, schedule_response, "завтра",
-                                     header="👋 Привет, это рассылка расписания.")
+                                     header=header_text, buttons=[keyboards.inline_bt_unsub])
 
     except exceptions.BotBlocked:
         logging.error(f"target id:{user_id} - blocked by user")

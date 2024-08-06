@@ -45,7 +45,16 @@ def archive_old_logs(days: int = 7):
 
 
 # Asynchronous function that handles log rotation and archiving
-async def log_rotation_and_archiving():
+async def log_rotation_and_archiving(debug_mode: bool = False):
+    if debug_mode:
+        # If debug mode is enabled, stdout will be used for logging
+        logging.basicConfig(
+            format='%(asctime)s - [%(levelname)s] - %(funcName)s - %(message)s',
+            level=logging.INFO,
+            force=True
+        )
+        return
+    
     while True:
         rotate_log_file()
         archive_old_logs()

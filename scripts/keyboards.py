@@ -21,6 +21,8 @@ kb_main = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True) \
 bt_mailing_config = KeyboardButton('⚙ Настройка рассылки ✉')
 bt_group_config = KeyboardButton('⚙ Настройка группы 🤓')
 
+inline_bt_unsub = InlineKeyboardButton('Отписаться от рассылки', callback_data='unsubscribe')
+
 kb_settings = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True) \
     .add(bt_mailing_config, bt_group_config, bt_back)
 

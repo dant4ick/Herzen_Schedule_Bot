@@ -71,7 +71,6 @@ async def cancel_mailing(msg: types.Message):
     await states.Mailing.Unsubscribe.set()
 
 
-@dp.callback_query_handler(state=states.Mailing.Unsubscribe)
 async def stop_mailing(call: types.CallbackQuery, state: FSMContext):
     db.del_mailing_time(call.from_user.id)
     await state.finish()
@@ -81,6 +80,16 @@ async def stop_mailing(call: types.CallbackQuery, state: FSMContext):
 
     await call.message.edit_text(
         "🤖 Хорошо, больше не буду автоматически присылать тебе расписание на завтра.")
+
+
+@dp.callback_query_handler(state=states.Mailing.Unsubscribe)
+async def stop_mailing_from_config(call: types.CallbackQuery, state: FSMContext):
+    await stop_mailing(call, state)
+    
+
+@dp.callback_query_handler(text=keyboards.inline_bt_unsub.callback_data, state='*')
+async def stop_mailing_from_message(call: types.CallbackQuery, state: FSMContext):
+    await stop_mailing(call, state)
 
 
 @dp.message_handler(filters.Text(contains='настройка группы', ignore_case=True))

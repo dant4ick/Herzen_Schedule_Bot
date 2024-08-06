@@ -22,11 +22,11 @@ async def on_startup(dp):
 
     loop.create_task(mailing_schedule('18:00', 'tomorrow'))
     loop.create_task(clear_schedule_cache('20:00'))
-    
+
+    loop.create_task(log_rotation_and_archiving(bool(debug_mode)))
+
     if debug_mode:
         return
-
-    loop.create_task(log_rotation_and_archiving())
     
     if PUBLIC_KEY_PATH:
         await bot.set_webhook(WEBHOOK_URL, certificate=open(PUBLIC_KEY_PATH, 'rb'))
