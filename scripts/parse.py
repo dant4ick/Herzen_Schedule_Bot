@@ -62,7 +62,7 @@ def parse_groups():
     logging.info(f"parsed groups successfully")
 
 
-@alru_cache(maxsize=2048)
+@alru_cache(maxsize=1)
 async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if date_1 and not date_2:
         date_2 = date_1
