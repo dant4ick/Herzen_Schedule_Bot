@@ -87,7 +87,10 @@ async def mailing_schedule(mailing_time: str, schedule_date: str):
         logging.info(f"starting to mail schedules")
         mailing_list = db.get_mailing_list()
         for user_id, mailing_time in mailing_list:
-            await broadcast_schedule(user_id, message_type=schedule_date)
+            try:
+                await broadcast_schedule(user_id, message_type=schedule_date)
+            except asyncio.TimeoutError:
+                logging.error(f"Timeout error occurred while broadcasting schedule to user {user_id}")
             await asyncio.sleep(.5)
         await asyncio.sleep(1)
 
