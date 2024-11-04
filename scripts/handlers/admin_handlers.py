@@ -60,22 +60,17 @@ async def send_broadcast_message(call: CallbackQuery, state: FSMContext):
         all_id.remove((ADMIN_TELEGRAM_ID,))
 
         max_counter = len(all_id)
-        quarters = [round(max_counter * 0.25),
-                    round(max_counter * 0.5),
-                    round(max_counter * 0.75),
-                    max_counter
-                    ]
-        msg_counter = 0
+        update_interval = max(1, max_counter // 100)  # Update every 1% or at least every user if less than 100 users
 
-        await call.bot.send_message(ADMIN_TELEGRAM_ID, f"Это займет примерно {timedelta(seconds = max_counter * 0.5)}.")
+        await call.bot.send_message(ADMIN_TELEGRAM_ID, f"Это займет примерно {timedelta(seconds=max_counter * 0.5)}.")
         await call.message.edit_text(f"Хорошо, отправляю {max_counter} сообщений...")
 
-        for user_id in all_id:
+        for msg_counter, user_id in enumerate(all_id, start=1):
             await broadcast_message(user_id[0], msg, msg_type)
-            msg_counter += 1
-            if msg_counter in quarters:
-                await asyncio.sleep(.5)
-                quarter = quarters.index(msg_counter) + 1
-                await call.message.edit_text(f"Отправлено {msg_counter} из {max_counter} "
-                                             f"<code>[{'#' * quarter}{'-' * (4 - quarter)}]</code>")
+            
+            if msg_counter % update_interval == 0 or msg_counter == max_counter:
+                progress = (msg_counter / max_counter) * 100
+                progress_bar = f"<code>[{'#' * (int(progress) // 5)}{'-' * (20 - (int(progress) // 5))}]</code>"
+                await call.message.edit_text(f"Отправлено {msg_counter} из {max_counter} ({progress:.2f}%) {progress_bar}")
+            
             await asyncio.sleep(.5)
