@@ -14,15 +14,24 @@ from async_lru import alru_cache
 from data.config import BASE_DIR
 from scripts.utils import seconds_before_iso_time
 
-SCHEDULE_DATE_URL = r'https://old-guide.herzen.spb.ru/static/schedule_dates.php?id_group='
+BASE_URL = 'https://old-guide.herzen.spb.ru/static'
+SCHEDULE_DATE_URL = f'{BASE_URL}/schedule_dates.php?id_group='
 
 
 def parse_groups():
     groups = {}
 
-    schedule = request.get(r'https://old-guide.herzen.spb.ru/static/schedule.php')
+    try:
+        schedule = request.get(f'{BASE_URL}/schedule.php', timeout=5)
+    except request.exceptions.Timeout:
+        logging.error("Timeout error occurred while parsing groups list")
+        return
+    except request.exceptions.RequestException as e:
+        logging.error(f"Request error occurred while parsing groups list, {e}")
+        return
+
     if not schedule.ok:
-        logging.info("can't parse groups list: page is not accessible")
+        logging.info("Can't parse groups list: page is not accessible")
         return
 
     soup = BeautifulSoup(schedule.text, 'html.parser')
@@ -68,7 +77,17 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
         date_2 = date_1
 
     url = f"{SCHEDULE_DATE_URL}{group}&date1={date_1}&date2={date_2}"
-    schedule_response = request.get(url)
+    
+    try:
+        schedule_response = request.get(url, timeout=5)
+    except request.exceptions.Timeout:
+        logging.error(f"Timeout error occurred while parsing schedule for group: {group}, sub_group: {sub_group}, "
+                      f"date: {date_1} - {date_2}")
+        return None, url
+    except request.exceptions.RequestException as e:
+        logging.error(f"Request error occurred while parsing schedule for group: {group}, sub_group: {sub_group}, "
+                      f"date: {date_1} - {date_2}, {e}")
+        return None, url
 
     logging.info(f"group: {group}, sub_group: {sub_group}, date: {date_1} - {date_2}, "
                  f"url: {url}, r_code: {schedule_response.status_code}")
