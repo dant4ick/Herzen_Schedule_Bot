@@ -72,13 +72,3 @@ class Database:
                 "SELECT user_id FROM users"
             ).fetchall()
         return all_user_ids
-
-if __name__ == "__main__":
-    import random    
-    db = Database("/home/dant4ick/Programming/1.tg/Herzen_Schedule_Bot/data/user_data.db")
-
-    for i in range(7):
-        user_id = i + 1
-        group_id = random.randint(1, 10)
-        sub_group = random.randint(0, 1)
-        db.add_user(user_id, group_id, sub_group)
