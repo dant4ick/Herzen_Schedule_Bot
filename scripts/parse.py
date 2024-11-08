@@ -9,8 +9,6 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString
 import json
 
-from async_lru import alru_cache
-
 from data.config import BASE_DIR
 from scripts.utils import seconds_before_iso_time
 
@@ -71,7 +69,6 @@ def parse_groups():
     logging.info(f"parsed groups successfully")
 
 
-@alru_cache(maxsize=1)
 async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if date_1 and not date_2:
         date_2 = date_1
@@ -170,22 +167,6 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if not schedule_courses:
         return {}, url
     return schedule_courses, url
-
-
-async def clear_schedule_cache(time_to_clear: str = None):
-    while True:
-        if time_to_clear:
-            pause = await seconds_before_iso_time(time_to_clear)
-            await asyncio.sleep(pause)
-
-        logging.info(f"starting to clear schedule cache")
-        logging.info(parse_date_schedule.cache_info())
-        parse_date_schedule.cache_clear()
-        logging.info(parse_date_schedule.cache_info())
-        await asyncio.sleep(1)
-
-        if not time_to_clear:
-            break
 
 
 async def update_groups(time_to_update: str = None):

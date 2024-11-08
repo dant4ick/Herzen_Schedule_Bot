@@ -2,43 +2,40 @@ from aiogram.types import InlineKeyboardButton, KeyboardButton, ReplyKeyboardMar
 
 from data.config import DONATE_URL, SUBSCRIBE_URL
 
-inline_bt_cancel = InlineKeyboardButton('Отменить', callback_data='cancel')
-inline_bt_confirm = InlineKeyboardButton('Подтвердить', callback_data='confirm')
+inline_bt_cancel = InlineKeyboardButton(text='Отменить', callback_data='cancel')
+inline_bt_confirm = InlineKeyboardButton(text='Подтвердить', callback_data='confirm')
 
-bt_back = KeyboardButton('◀ Назад ◀')
+inline_kb_confirm = InlineKeyboardMarkup(inline_keyboard=[[inline_bt_confirm, inline_bt_cancel]])
 
-bt_settings = KeyboardButton('⚙ Настройки ⚙')
-bt_schedule_today = KeyboardButton('📗 Сегодня 📗')
-bt_schedule_tomorrow = KeyboardButton('📘 Завтра 📘')
-bt_schedule_curr_week = KeyboardButton('🔽 Эта неделя 7️⃣')
-bt_schedule_next_week = KeyboardButton('▶ Следующая неделя 7️⃣')
 
-kb_main = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True) \
-    .add(bt_schedule_today, bt_schedule_tomorrow) \
-    .row(bt_schedule_curr_week, bt_schedule_next_week) \
-    .row(bt_settings)
+bt_back = KeyboardButton(text='◀ Назад')
 
-bt_mailing_config = KeyboardButton('⚙ Настройка рассылки ✉')
-bt_group_config = KeyboardButton('⚙ Настройка группы 🤓')
+bt_settings = KeyboardButton(text='⚙ Настройки')
+bt_schedule_today = KeyboardButton(text='📗 Сегодня')
+bt_schedule_tomorrow = KeyboardButton(text='📘 Завтра')
+bt_schedule_curr_week = KeyboardButton(text='🔽 Эта неделя')
+bt_schedule_next_week = KeyboardButton(text='▶ Следующая неделя')
 
-inline_bt_unsub = InlineKeyboardButton('Отписаться от рассылки', callback_data='unsubscribe')
+kb_main = ReplyKeyboardMarkup(keyboard=[
+    [bt_schedule_today, bt_schedule_tomorrow], 
+    [bt_schedule_curr_week, bt_schedule_next_week], 
+    [bt_settings]], resize_keyboard=True)
 
-kb_settings = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True) \
-    .add(bt_mailing_config, bt_group_config, bt_back)
+bt_mailing_config = KeyboardButton(text='✉ Настройка рассылки')
+bt_group_config = KeyboardButton(text='🤓 Настройка группы')
 
-inline_bt_donate = InlineKeyboardButton('Разовый платеж', url=DONATE_URL)
-inline_bt_subscribe = InlineKeyboardButton('Регулярный платеж', url=SUBSCRIBE_URL)
-inline_bt_crypto = InlineKeyboardButton('Криптовалюты', callback_data='crypto')
+inline_bt_unsub = InlineKeyboardButton(text='Отписаться от рассылки', callback_data='unsubscribe')
 
-inline_kb_donate = InlineKeyboardMarkup().row(inline_bt_donate, inline_bt_subscribe).row(inline_bt_crypto)
+kb_settings = ReplyKeyboardMarkup(keyboard=[[bt_mailing_config], [bt_group_config], [bt_back]], resize_keyboard=True)
 
-_crypto_amount_options = {"150р": 150, "300р": 300, "500р": 500, "1000р": 1000}
-inline_kb_donate_amount = InlineKeyboardMarkup().add(*[InlineKeyboardButton(f'{key}', callback_data=f'crypto_{value}') for key, value in _crypto_amount_options.items()]).row(inline_bt_cancel)
+inline_bt_donate = InlineKeyboardButton(text='Разовый платеж', url=DONATE_URL)
+inline_bt_subscribe = InlineKeyboardButton(text='Регулярный платеж', url=SUBSCRIBE_URL)
+inline_bt_stars = InlineKeyboardButton(text='⭐ Звездочки ⭐', callback_data='donate_stars')
 
-bt_admin_broadcast = KeyboardButton('✉ Отправить сообщение всем ✉')
-bt_admin_return = KeyboardButton('◀ Вернуть клавиатуру пользователя ◀')
+inline_kb_donate = InlineKeyboardMarkup(inline_keyboard=[[inline_bt_donate, inline_bt_subscribe], [inline_bt_stars], [inline_bt_cancel]])
 
-kb_admin = ReplyKeyboardMarkup(resize_keyboard=True).add(
-    bt_admin_broadcast,
-    bt_admin_return
-)
+bt_admin_broadcast = KeyboardButton(text='✉ Отправить сообщение всем')
+bt_admin_refund = KeyboardButton(text='⭐ Возврат звездочек')
+bt_admin_return = KeyboardButton(text='◀ Вернуть клавиатуру пользователя')
+
+kb_admin = ReplyKeyboardMarkup(keyboard=[[bt_admin_broadcast, bt_admin_refund], [bt_admin_return]], resize_keyboard=True)

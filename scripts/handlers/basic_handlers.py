@@ -2,79 +2,76 @@ import logging
 import re
 from datetime import datetime, timedelta
 
-from aiogram import types
-from aiogram.dispatcher import filters, FSMContext
-from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from aiogram import types, F
+from aiogram.fsm.context import FSMContext
+from aiogram.types import ReplyKeyboardRemove
+from aiogram.filters import CommandStart, Command, CommandObject
 
 from scripts.bot import db, dp
 from scripts import keyboards
 from scripts.parse import parse_date_schedule
-from scripts.utils import validate_user, throttled
+from scripts.utils import validate_user, get_dates_regexp, date_range_pattern, year_pattern
 from scripts.message_handlers import send_date_schedule
 
 
-@dp.message_handler(commands=['start'], state='*')
+@dp.message(CommandStart())
 async def start(msg: types.Message, state: FSMContext):
-    await state.finish()
-    await msg.answer("Привет, я <b>Herzen Schedule Bot</b>! "
-                     "Смогу помочь тебе быстро узнать твое <b>расписание</b>.\n"
-                     "Для этого тебе нужно пройти опрос, чтобы я знал, где ты учишься. "
-                     "На клавиатуре у тебя появилась кнопка \"Настройка группы\".\n"
-                     "Нажимай и давай начинать! Если промахнешься по кнопкам, снизу всегда есть \"Отмена\"",
-                     reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))
+    await state.clear()
+    await msg.answer(f"Привет, я <b>Herzen Schedule Bot</b>! "
+                     f"Смогу помочь тебе быстро узнать твое <b>расписание</b>.\n"
+                     f"Для этого тебе нужно пройти опрос, чтобы я знал, где ты учишься. "
+                     f"На клавиатуре у тебя появилась кнопка <b>{keyboards.bt_group_config.text}</b>.\n"
+                     f"Нажимай и давай начинать! Если промахнешься по кнопкам, снизу всегда есть \"Отмена\"",
+                     reply_markup=keyboards.kb_settings)
     logging.info(f"start: {msg.from_user.id} (@{msg.from_user.username})")
 
 
-@dp.message_handler(commands=['help'])
+@dp.message(Command('help'))
 async def get_help(msg: types.Message):
-    await msg.answer("Чтобы посмотреть расписание, используй кнопки \"Сегодня\", \"Завтра\", "
-                     "\"Эта неделя\", \"Следующая неделя\".\n\n"
-                     "Интересует конкретная дата или период? Попробуй /date.\n\n"
-                     "Чтобы изменить свою группу, настроить рассылку, заходи в \"Настройки\".\n\n"
-                     "Что-то не понятно? Столкнулись с проблемой? "
-                     "По любому поводу можешь написать разработчику, ссылка есть в описании бота.\n\n"
-                     "Хочешь поддержать бота и его разработчика - /donate",
+    await msg.answer(f"Чтобы посмотреть расписание, используй кнопки "
+                     f"{keyboards.bt_schedule_today.text}, {keyboards.bt_schedule_tomorrow.text}, "
+                     f"{keyboards.bt_schedule_curr_week.text}, {keyboards.bt_schedule_next_week.text}.\n\n"
+                     f"Интересует конкретная дата или период? Попробуй /date.\n\n"
+                     f"Чтобы изменить свою группу, настроить рассылку, заходи в {keyboards.bt_settings.text}.\n\n"
+                     f"Что-то не понятно? Столкнулись с проблемой? "
+                     f"По любому поводу можешь написать разработчику, ссылка есть в описании бота.\n\n"
+                     f"Хочешь поддержать бота и его разработчика - /donate",
                      reply_markup=keyboards.kb_main)
 
 
-@dp.message_handler(commands=['hide'])
-@dp.throttled(throttled, rate=2)
+@dp.message(Command('hide'))
+# @dp.throttled(throttled, rate=2)
 async def hide_keyboard(msg: types.Message):
     await msg.answer("Окей, клавиатура скрыта. Чтобы вернуть ее, используй /show.",
                      reply_markup=ReplyKeyboardRemove())
 
 
-@dp.message_handler(commands=['show'])
-@dp.throttled(throttled, rate=2)
+@dp.message(Command('show'))
+# @dp.throttled(throttled, rate=2)
 async def show_keyboard(msg: types.Message):
     await msg.answer("Окей, вернул клавиатуру. Чтобы скрыть ее, используй /hide.",
                      reply_markup=keyboards.kb_main)
 
 
-@dp.message_handler(commands=['date'])
-@dp.throttled(throttled, rate=5)
-async def send_specific_date_schedule(msg: types.Message):
+@dp.message(F.text.regexp(get_dates_regexp()))
+@dp.message(Command('date'))
+# @dp.throttled(throttled, rate=5)
+async def send_specific_date_schedule(msg: types.Message, command: CommandObject = None):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
         return
 
-    args = msg.get_args()
+    args: str = command.args if command else msg.text
     if not args:
         await msg.answer("Чтобы вывести расписание на конкретную <b>дату</b>, напиши:\n"
-                         "<code>/date ДД.ММ.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
+                         "<code>ДД.ММ.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
                          "Чтобы вывести расписание на конкретный <b>период</b>, напиши:\n"
-                         "<code>/date ДД.MM.ГГГГ-ДД.MM.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
-                         "Можешь попробовать после команды <code>/date</code> "
-                         "написать несколько дат или периодов через пробел, должно сработать!\n"
+                         "<code>ДД.MM.ГГГГ-ДД.MM.ГГГГ</code> <i>(год можно не писать)</i>\n\n"
+                         "Можешь попробовать несколько дат или периодов через пробел, должно сработать!\n\n"
                          "Правила такие: максимум 4 даты/периода за запрос, не больше двух периодов в одном запросе.")
         return
 
-    day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
-    month_pattern = r"(\.((0[1-9])|(1[0-2])|([1-9]))\b)"
-    year_pattern = r"(\.(\d{4}))"
-    date_pattern = r"({0}{1}({2})?)".format(day_pattern, month_pattern, year_pattern)
-    date_range_pattern = r"({0}\-{1})".format(date_pattern, date_pattern)
-    matches = re.findall(r"((\A|\s|\b)({r}|{d})(\Z|\s))".format(r=date_range_pattern, d=date_pattern), args)
+    matches = re.findall(get_dates_regexp(), args)
     dates = [date[0].strip() for date in matches]
 
     if not dates:
@@ -133,8 +130,8 @@ async def send_specific_date_schedule(msg: types.Message):
                                                                       f'{dates_range[1].strftime("%d.%m.%Y")})')
 
 
-@dp.message_handler(filters.Text(contains='сегодня', ignore_case=True))
-@dp.throttled(throttled, rate=2)
+@dp.message(F.text == keyboards.bt_schedule_today.text)
+# @dp.throttled(throttled, rate=2)
 async def send_today_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -150,8 +147,8 @@ async def send_today_schedule(msg: types.Message):
     await send_date_schedule(msg.from_user.id, schedule_response, "сегодня")
 
 
-@dp.message_handler(filters.Text(contains='завтра', ignore_case=True))
-@dp.throttled(throttled, rate=2)
+@dp.message(F.text == keyboards.bt_schedule_tomorrow.text)
+# @dp.throttled(throttled, rate=2)
 async def send_tomorrow_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -167,8 +164,8 @@ async def send_tomorrow_schedule(msg: types.Message):
     await send_date_schedule(msg.from_user.id, schedule_response, "завтра")
 
 
-@dp.message_handler(filters.Text(contains='эта неделя', ignore_case=True))
-@dp.throttled(throttled, rate=5)
+@dp.message(F.text == keyboards.bt_schedule_curr_week.text)
+# @dp.throttled(throttled, rate=5)
 async def send_curr_week_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")
@@ -188,8 +185,8 @@ async def send_curr_week_schedule(msg: types.Message):
     await send_date_schedule(msg.from_user.id, schedule_response, "эта неделя")
 
 
-@dp.message_handler(filters.Text(contains='следующая неделя', ignore_case=True))
-@dp.throttled(throttled, rate=5)
+@dp.message(F.text == keyboards.bt_schedule_next_week.text)
+# @dp.throttled(throttled, rate=5)
 async def send_next_week_schedule(msg: types.Message):
     if not await validate_user(msg.from_user.id):
         logging.info(f"user validation failed - id: {msg.from_user.id}, username: @{msg.from_user.username}")

@@ -1,47 +1,57 @@
 import logging
-from aiogram.types import Message, CallbackQuery
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from aiocryptopay.const import Fiat
-from aiocryptopay.const import CurrencyType
-from aiocryptopay.models.update import Update
+from aiogram import F
+from aiogram.types import Message, CallbackQuery, LabeledPrice, PreCheckoutQuery
+from aiogram.types import InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.filters import Command
 
-from scripts.bot import dp, crypto
-from scripts.keyboards import inline_kb_donate, inline_kb_donate_amount, inline_bt_cancel
+from scripts.bot import dp, bot
+from scripts.keyboards import inline_kb_donate
+from scripts.utils import notify_admins
 
-
-@dp.message_handler(commands=['donate'])
+@dp.message(Command('donate'))
 async def show_donate_methods(msg: Message):
-    await msg.answer("Хочешь поддержать бота и его разработчика?\n"
-                     "Вариантов несколько:\n"
-                     "💎 Прислать состояньице любого размера, решаешь ты.\n"
-                     "💸 Раз в месяц жаловать мелочишку, размер, опять же, определяешь ты.\n\n"
-                     "Оформляется все через специальный сервис, так что никаких данных себе не сохраняю, "
-                     "махинаций не провожу.",
+    await msg.answer("Хочешь поддержать бота и его разработчика? Есть несколько способов:\n"
+                     "💎 Однократный донат на любую сумму — ты сам выбираешь размер поддержки.\n"
+                     "💸 Ежемесячная поддержка — вариант один, но он доступен каждому.\n"
+                     "⭐ Или можешь поддержать звездочками!\n\n"
+                     "Все проходит через безопасные сервисы, так что твои данные остаются в безопасности.",
                      reply_markup=inline_kb_donate)
+
+
+@dp.callback_query(F.data == 'donate_stars')
+async def donate_stars(call: CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    for i in [25, 50, 150, 300]:
+        builder.add(InlineKeyboardButton(text=f'{i} ⭐', callback_data=f'stars_{i}'))
     
+    await call.answer()
+    await call.message.edit_text("Выбери количество звездочек, которое хочешь отправить.",
+                                 reply_markup=builder.as_markup())
 
-@dp.callback_query_handler(text='crypto')
-async def show_crypto_methods(call: CallbackQuery):        
-    await call.message.edit_text("Выбери сумму, которую хочешь перевести", reply_markup=inline_kb_donate_amount)
 
-
-@dp.callback_query_handler(lambda c: c.data.startswith('crypto_'))
-async def process_crypto_payment(call: CallbackQuery):
-    amount = int(call.data.split('_')[1])
-    invoice = await crypto.create_invoice(amount, fiat=Fiat.RUB, currency_type=CurrencyType.FIAT,
-                                          allow_comments=True, allow_anonymous=True, description="Поддержка бота",
-                                          hidden_message="Спасибо за поддержку!",
-                                          payload=str(call.from_user.id))
+@dp.callback_query(F.data.startswith('stars_'))
+async def donate_stars(call: CallbackQuery):    
+    stars = int(call.data.split('_')[1])
+    await call.message.answer_invoice(title="Поддержка бота",
+                                      description="Поддержка бота и его разработчика",
+                                      payload='donate_stars',
+                                      currency='XTR', provider_token='',
+                                      prices=[LabeledPrice(label='донат', amount=stars)])
     
-    kb_crypto_pay = InlineKeyboardMarkup().add(InlineKeyboardButton(text=f"Задонатить {amount}RUB в криптовалюте", url=invoice.mini_app_invoice_url)).row(inline_bt_cancel)
+    await call.answer()
+    await call.message.delete()
+
+
+@dp.pre_checkout_query(F.invoice_payload == 'donate_stars')
+async def donate_stars_pre_checkout(query: PreCheckoutQuery):
+    await query.answer(ok=True)
+
+
+@dp.message(F.successful_payment)
+async def donate_stars_success(msg: Message):
+    await notify_admins(f"🌟 Пользователь {msg.from_user.id} поддержал бота на {msg.successful_payment.total_amount} звездочек.")
     
-    await call.message.edit_text(f"Счет для оплаты доступен по кнопке "
-                                 f"или по <a href='{invoice.bot_invoice_url}'>ссылке</a>.",
-                                 reply_markup=kb_crypto_pay)
-
-
-@crypto.pay_handler()
-async def on_payment(update: Update):
-    logging.info(f"Payment received: {update}")
-    dp.bot.send_message(int(update.payload), f"Спасибо за поддержку! Ваш платеж на сумму {update.amount}RUB успешно обработан.")
+    await msg.answer("Спасибо за поддержку! Твои звездочки помогут боту стать еще лучше 🌟")
+    logging.info(f"User {msg.from_user.id} donated {msg.successful_payment.total_amount} stars.")

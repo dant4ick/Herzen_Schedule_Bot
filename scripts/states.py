@@ -1,5 +1,4 @@
-from aiogram.dispatcher.filters.state import StatesGroup, State
-
+from aiogram.fsm.state import State, StatesGroup
 
 class UserData(StatesGroup):
     Faculty = State()
@@ -9,12 +8,17 @@ class UserData(StatesGroup):
     Group = State()
     SubGroup = State()
 
-
 class Broadcast(StatesGroup):
     Message = State()
     MessageType = State()
 
-
 class Mailing(StatesGroup):
     Subscribe = State()
     Unsubscribe = State()
+    
+class BroadcastAbort(StatesGroup):
+    Abort = State()
+
+class StarsRefund(StatesGroup):
+    Refund = State()
+    Confirm = State()

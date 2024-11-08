@@ -2,15 +2,28 @@ import json
 import logging
 from datetime import datetime, timedelta, time
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, Message
-from aiogram.utils.callback_data import CallbackData
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+from aiogram.filters.callback_data import CallbackData
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from pathlib import Path
-from data.config import BASE_DIR
+from data.config import BASE_DIR, ADMIN_TELEGRAM_ID
 from scripts import keyboards
-from scripts.bot import db, dp
+from scripts.bot import db, dp, bot
 
-cb_data = CallbackData('data', 'num')
+day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
+month_pattern = r"(\.((0[1-9])|(1[0-2])|([1-9]))\b)"
+year_pattern = r"(\.(\d{4}))"
+date_pattern = r"({0}{1}({2})?)".format(day_pattern, month_pattern, year_pattern)
+date_range_pattern = r"({0}\-{1})".format(date_pattern, date_pattern)
+
+def get_dates_regexp() -> str:
+    
+    return r"((\A|\s|\b)({r}|{d})(\Z|\s))".format(r=date_range_pattern, d=date_pattern)
+
+
+class NumCallback(CallbackData, prefix="data"):
+    num: int
 
 
 async def open_groups_file():
@@ -22,12 +35,14 @@ async def open_groups_file():
 async def generate_kb_nums(source):
     msg_text = ''
     counter = 1
-    inline_kb_numbers = InlineKeyboardMarkup(row_width=8)
+    builder = InlineKeyboardBuilder()
     for data in source.keys():
         msg_text += f"{counter}. {data[0].upper() + data[1:]}\n"
-        inline_kb_numbers.insert(InlineKeyboardButton(f'{counter}', callback_data=cb_data.new(num=counter)))
+        builder.button(text=f'{counter}', callback_data=NumCallback(num=counter).pack())
         counter += 1
-    return msg_text, inline_kb_numbers
+    # builder.adjust(8)
+    builder.row(keyboards.inline_bt_cancel)
+    return msg_text, builder.as_markup()
 
 
 async def generate_schedule_message(schedule):
@@ -78,9 +93,9 @@ async def validate_user(user_id: int):
     groups_list = extract_group_numbers(groups_dict)
 
     if not user_data or str(user_data[0]) not in groups_list:
-        await dp.bot.send_message(user_id, "Кажется, я не знаю, где ты учишься. "
-                                           "Пройди опрос, чтобы я мог вывести твое расписание.",
-                                  reply_markup=ReplyKeyboardMarkup(resize_keyboard=True).add(keyboards.bt_group_config))
+        await bot.send_message(user_id, f"Кажется, я не знаю, где ты учишься.\n"
+                                        f"Нажми на кнопку <b>{keyboards.bt_group_config.text}</b>, чтобы я мог вывести твое расписание.",
+                                  reply_markup=keyboards.kb_settings)
         return False
     return True
 
@@ -99,3 +114,9 @@ async def seconds_before_iso_time(wait_before: str):
     wait_for_delta = timedelta(hours=wait_for.hour, minutes=wait_for.minute, seconds=wait_for.second)
     pause = (wait_for_delta - now_delta).seconds
     return pause
+
+
+async def notify_admins(message: str):
+    msg_text = f"📢 <b>Внимание!</b>\n\n{message}"
+    
+    await bot.send_message(ADMIN_TELEGRAM_ID, msg_text, parse_mode='HTML')
