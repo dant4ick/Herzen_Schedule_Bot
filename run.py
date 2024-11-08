@@ -41,12 +41,12 @@ async def on_shutdown(bot: Bot):
     await dp.storage.close()
 
 
-async def main():
+def main():
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
     
     if debug_mode:
-        await dp.start_polling(bot)
+        asyncio.run(dp.start_polling(bot))
     else:
         # Create aiohttp.web.Application instance
         app = web.Application()
@@ -71,4 +71,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     debug_mode = args.debug
-    asyncio.run(main())
+    main()
