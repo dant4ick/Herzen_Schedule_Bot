@@ -12,7 +12,7 @@ WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST')
 WEBHOOK_PATH = f'/{TELEGRAM_TOKEN}'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
-WEBAPP_HOST = 'localhost'  # or ip
+WEBAPP_HOST = os.environ.get('WEBAPP_HOST', '0.0.0.0')
 WEBAPP_PORT = int(os.environ.get('WEBAPP_PORT', '5000'))
 
 # for self-signed certificates
@@ -24,9 +24,6 @@ if PUBLIC_KEY_PATH:
 # Donate urls
 DONATE_URL = os.environ.get('DONATE_URL', r'https://pay.cloudtips.ru/p/0a19cb8e')
 SUBSCRIBE_URL = os.environ.get('SUBSCRIBE_URL', r'https://boosty.to/dant4ick')
-CRYPTO_PAY_API_TOKEN = os.environ.get('CRYPTO_PAY_API_TOKEN', '1337:JHigdsaASq')
-CRYPTO_PAY_API_NET = os.environ.get('CRYPTO_PAY_API_NET', 'testnet')
-
 
 # Path to run.py dir
 BASE_DIR = Path(__file__).parent.parent
