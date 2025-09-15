@@ -11,6 +11,8 @@ RUN python -m venv /opt/venv
 
 WORKDIR /app
 
+ENV PYTHONPATH=/app
+
 # System deps (if in future need libcurl or others add here)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
