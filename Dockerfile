@@ -27,9 +27,6 @@ COPY run.py ./
 COPY data ./data
 COPY scripts ./scripts
 
-# Create volume point for sqlite db (will be created inside data/)
-VOLUME ["/app/data"]
-
 # Expose web app port (default 5000) - for webhook server
 EXPOSE 5000
 

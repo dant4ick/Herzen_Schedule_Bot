@@ -12,4 +12,4 @@ storage = MemoryStorage()
 bot = Bot(token=TELEGRAM_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=storage)
 
-db = database.Database(Path(BASE_DIR / 'data/user_data.db'))
+db = database.Database(Path(BASE_DIR / 'storage' / 'user_data.db'))

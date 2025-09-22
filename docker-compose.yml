@@ -1,22 +1,20 @@
 version: '3.8'
 services:
   bot:
-    image: ghcr.io/dant4ick/herzen_schedule_bot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: herzen-schedule-bot
     restart: always
     environment:
-      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
-      ADMIN_TELEGRAM_ID: ${ADMIN_TELEGRAM_ID}
-      WEBHOOK_HOST: ${WEBHOOK_HOST}
+      TELEGRAM_TOKEN: 5056837682:AAGfMBBlhp_KmtSAsag5YJM82bg8Y5JPFbU
+      ADMIN_TELEGRAM_ID: 154246218
+      WEBHOOK_HOST: https://example.com
       WEBAPP_HOST: 0.0.0.0
-      WEBAPP_PORT: ${WEBAPP_PORT:-5000}
-      DONATE_URL: ${DONATE_URL}
-      SUBSCRIBE_URL: ${SUBSCRIBE_URL}
-      CRYPTO_PAY_API_TOKEN: ${CRYPTO_PAY_API_TOKEN}
-      CRYPTO_PAY_API_NET: ${CRYPTO_PAY_API_NET}
+      WEBAPP_PORT: 5000
+      DONATE_URL: https://pay.cloudtips.ru/p/0a19cb8e
+      SUBSCRIBE_URL: https://t.me/tribute/app?startapp=s4Ic
     volumes:
-      - /var/lib/herzen_schedule_bot:/app/data
+      - ./dockerdata:/app/storage
     ports:
       - "5000:5000"
-
-volumes:
