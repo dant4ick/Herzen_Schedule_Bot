@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta, time
+from zoneinfo import ZoneInfo
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from aiogram.filters.callback_data import CallbackData
@@ -107,7 +108,8 @@ async def throttled(*args, **kwargs):
 
 
 async def seconds_before_iso_time(wait_before: str):
-    now = datetime.now()
+    moscow_tz = ZoneInfo("Europe/Moscow")
+    now = datetime.now(tz=moscow_tz)
     wait_for = time.fromisoformat(wait_before)
 
     now_delta = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second)
