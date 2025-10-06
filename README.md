@@ -30,6 +30,7 @@
 | WEBAPP_PORT           | Порт веб-сервера (по умолчанию)  | 5000                                |
 | DONATE_URL            | Ссылка на донат                  | https://pay.cloudtips.ru/p/0a19cb8e |
 | SUBSCRIBE_URL         | Ссылка на подписку               | https://boosty.to/dant4ick          |
+| TIMEZONE              | IANA-таймзона бота               | Europe/Moscow                       |
 
 ---
 
@@ -88,6 +89,7 @@
          WEBAPP_PORT: ${WEBAPP_PORT:-5000}
          DONATE_URL: ${DONATE_URL}
          SUBSCRIBE_URL: ${SUBSCRIBE_URL}
+         TIMEZONE: ${TIMEZONE:-Europe/Moscow}
          CRYPTO_PAY_API_TOKEN: ${CRYPTO_PAY_API_TOKEN}
          CRYPTO_PAY_API_NET: ${CRYPTO_PAY_API_NET}
          volumes:

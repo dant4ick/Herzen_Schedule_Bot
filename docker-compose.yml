@@ -14,7 +14,10 @@ services:
       WEBAPP_PORT: 5000
       DONATE_URL: https://pay.cloudtips.ru/p/0a19cb8e
       SUBSCRIBE_URL: https://t.me/tribute/app?startapp=s4Ic
+      TIMEZONE: Europe/Moscow
     volumes:
       - ./dockerdata:/app/storage
     ports:
       - "5000:5000"
+    # Use the default command from Dockerfile or make debug configurable via environment variable
+    # command: ["python", "run.py", "--debug"]

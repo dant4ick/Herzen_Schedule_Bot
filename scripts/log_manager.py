@@ -1,13 +1,15 @@
 import logging
 import asyncio
 import tarfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
+
 from data.config import BASE_DIR
+from scripts.timezone import tz_now
 
 
 # Function to create a new log folder based on date
 def create_log_folder():
-    log_folder = BASE_DIR / 'logs' / datetime.now().strftime('%Y-%m-%d')
+    log_folder = BASE_DIR / 'logs' / tz_now().strftime('%Y-%m-%d')
     if not log_folder.exists():
         log_folder.mkdir(parents=True)
     return log_folder
@@ -16,7 +18,7 @@ def create_log_folder():
 # Function to rotate log files
 def rotate_log_file():
     current_log_folder = create_log_folder()
-    current_log_file = current_log_folder / datetime.now().strftime('%H-%M-%S.log')
+    current_log_file = current_log_folder / tz_now().strftime('%H-%M-%S.log')
 
     if current_log_file.exists():
         return
@@ -31,11 +33,14 @@ def rotate_log_file():
 
 # Function to archive older log folders
 def archive_old_logs(days: int = 7):
-    old_logs_time = datetime.now() - timedelta(days=days)
+    old_logs_threshold = (tz_now() - timedelta(days=days)).date()
     logs_folder = BASE_DIR / 'logs'
 
     for log_folder in logs_folder.iterdir():
-        if log_folder.is_dir() and datetime.strptime(log_folder.name, '%Y-%m-%d') < old_logs_time:
+        if log_folder.is_dir():
+            folder_date = datetime.strptime(log_folder.name, '%Y-%m-%d').date()
+            if folder_date >= old_logs_threshold:
+                continue
             archive_path = log_folder.with_suffix('.tar.gz')
             with tarfile.open(archive_path, 'w:gz') as archive:
                 archive.add(log_folder, arcname=log_folder.name)
@@ -58,7 +63,7 @@ async def log_rotation_and_archiving(debug_mode: bool = False):
     while True:
         rotate_log_file()
         archive_old_logs()
-        now = datetime.now()
-        end_of_day = datetime(year=now.year, month=now.month, day=now.day) + timedelta(days=1)
+        now = tz_now()
+        end_of_day = datetime.combine((now + timedelta(days=1)).date(), time.min, tzinfo=now.tzinfo)
         wait_duration = (end_of_day - now).total_seconds()
         await asyncio.sleep(wait_duration)

@@ -25,5 +25,8 @@ if PUBLIC_KEY_PATH:
 DONATE_URL = os.environ.get('DONATE_URL', r'https://pay.cloudtips.ru/p/0a19cb8e')
 SUBSCRIBE_URL = os.environ.get('SUBSCRIBE_URL', r'https://boosty.to/dant4ick')
 
+# Timezone configuration
+TIMEZONE = os.environ.get('TIMEZONE', 'Europe/Moscow')
+
 # Path to run.py dir
 BASE_DIR = Path(__file__).parent.parent

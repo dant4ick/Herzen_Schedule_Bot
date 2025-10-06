@@ -12,6 +12,7 @@ from scripts import keyboards
 from scripts.parse import parse_date_schedule
 from scripts.utils import validate_user, get_dates_regexp, date_range_pattern, year_pattern
 from scripts.message_handlers import send_date_schedule
+from scripts.timezone import tz_now, tz_today
 
 
 @dp.message(CommandStart())
@@ -81,6 +82,7 @@ async def send_specific_date_schedule(msg: types.Message, command: CommandObject
         await msg.answer(f"Прости, но я не поддерживаю больше, чем 4 даты/периода за один запрос.")
         return
 
+    current_year = tz_now().year
     dates_formatted = []
     dates_range_formatted = []
     for date in dates:
@@ -90,14 +92,14 @@ async def send_specific_date_schedule(msg: types.Message, command: CommandObject
                 for date_range_part in date_range:
                     part_index = date_range.index(date_range_part)
                     if not re.search(year_pattern, date_range_part):
-                        date_range_part += f".{datetime.now().year}"
+                        date_range_part += f".{current_year}"
                     day, month, year = date_range_part.split(".")
                     date_range[part_index] = datetime.strptime(f"{day.zfill(2)}.{month.zfill(2)}.{year}",
                                                                "%d.%m.%Y").date()
                 dates_range_formatted.append(date_range)
             else:
                 if not re.search(year_pattern, date):
-                    date += f".{datetime.now().year}"
+                    date += f".{current_year}"
                 day, month, year = date.split(".")
                 dates_formatted.append(datetime.strptime(f"{day.zfill(2)}.{month.zfill(2)}.{year}", "%d.%m.%Y").date())
         except ValueError:
@@ -138,7 +140,7 @@ async def send_today_schedule(msg: types.Message):
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
-    today = datetime.today().date()
+    today = tz_today()
 
     logging.info(f"attempted send today schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}")
 
@@ -155,7 +157,7 @@ async def send_tomorrow_schedule(msg: types.Message):
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
-    tomorrow = datetime.today().date() + timedelta(days=1)
+    tomorrow = tz_today() + timedelta(days=1)
 
     logging.info(f"attempted send tomorrow schedule - id: {msg.from_user.id}, username: @{msg.from_user.username}")
 
@@ -172,7 +174,7 @@ async def send_curr_week_schedule(msg: types.Message):
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
-    today = datetime.today().date()
+    today = tz_today()
 
     week_first = today - timedelta(days=today.weekday())
     week_last = week_first + timedelta(days=6)
@@ -193,7 +195,7 @@ async def send_next_week_schedule(msg: types.Message):
         return
     group_id, sub_group = db.get_user(msg.from_user.id)
 
-    today = datetime.today().date()
+    today = tz_today()
 
     week_first = today - timedelta(days=today.weekday()) + timedelta(days=7)
     week_last = week_first + timedelta(days=6)

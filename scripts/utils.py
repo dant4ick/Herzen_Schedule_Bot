@@ -1,7 +1,6 @@
 import json
 import logging
 from datetime import datetime, timedelta, time
-from zoneinfo import ZoneInfo
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from aiogram.filters.callback_data import CallbackData
@@ -11,6 +10,7 @@ from pathlib import Path
 from data.config import BASE_DIR, ADMIN_TELEGRAM_ID
 from scripts import keyboards
 from scripts.bot import db, dp, bot
+from scripts.timezone import tz_now
 
 day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
 month_pattern = r"(\.((0[1-9])|(1[0-2])|([1-9]))\b)"
@@ -108,14 +108,12 @@ async def throttled(*args, **kwargs):
 
 
 async def seconds_before_iso_time(wait_before: str):
-    moscow_tz = ZoneInfo("Europe/Moscow")
-    now = datetime.now(tz=moscow_tz)
+    now = tz_now()
     wait_for = time.fromisoformat(wait_before)
-
-    now_delta = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second)
-    wait_for_delta = timedelta(hours=wait_for.hour, minutes=wait_for.minute, seconds=wait_for.second)
-    pause = (wait_for_delta - now_delta).seconds
-    return pause
+    target = datetime.combine(now.date(), wait_for, tzinfo=now.tzinfo)
+    if target <= now:
+        target += timedelta(days=1)
+    return (target - now).total_seconds()
 
 
 async def notify_admins(message: str):
