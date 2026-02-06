@@ -1,177 +1,201 @@
 import asyncio
 import datetime
 import logging
-import re
-from pathlib import Path
+from typing import Any
 
-import requests as request
-from bs4 import BeautifulSoup
-from bs4.element import NavigableString
-import json
-
-from data.config import BASE_DIR
+from scripts.timezone import TZINFO
 from scripts.utils import seconds_before_iso_time
+from scripts import schedule_api
 
-BASE_URL = 'https://old-guide.herzen.spb.ru/static'
-SCHEDULE_DATE_URL = f'{BASE_URL}/schedule_dates.php?id_group='
+WEEKDAYS_RU = [
+    "понедельник",
+    "вторник",
+    "среда",
+    "четверг",
+    "пятница",
+    "суббота",
+    "воскресенье",
+]
 
-
-def parse_groups():
-    groups = {}
-
+def _parse_iso_datetime(value: str | None) -> datetime.datetime | None:
+    if not value:
+        return None
     try:
-        schedule = request.get(f'{BASE_URL}/schedule.php', timeout=5)
-    except request.exceptions.Timeout:
-        logging.error("Timeout error occurred while parsing groups list")
-        return
-    except request.exceptions.RequestException as e:
-        logging.error(f"Request error occurred while parsing groups list, {e}")
-        return
+        if value.endswith("Z"):
+            value = value.replace("Z", "+00:00")
+        parsed = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        logging.warning("Failed to parse datetime: %s", value)
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=TZINFO)
+    return parsed
 
-    if not schedule.ok:
-        logging.info("Can't parse groups list: page is not accessible")
-        return
 
-    soup = BeautifulSoup(schedule.text, 'html.parser')
+def _format_day_label(date_value: datetime.date) -> str:
+    weekday = WEEKDAYS_RU[date_value.weekday()]
+    day = str(date_value.day)
+    month = f"{date_value.month:02d}"
+    return f"{day}.{month}.{date_value.year}, {weekday}"
 
-    for faculty in soup.find('h1').find_next_siblings('h3'):
-        groups[faculty.text] = {}
-        forms = {}
-        for education_form in faculty.find_next_sibling('div').find_all('h4'):
-            forms[education_form.text] = {}
-            form = forms[education_form.text]
 
-            for data in education_form.find_next_sibling('ul').find_all('li'):
-                id_div = data.div
-                group_id = data.find('div').find('button')['onclick']
-                group_id = group_id.split("'")[1].split('=')[1].split('&')[0]
-                id_div.decompose()
-                stage, course, group = data.text.strip().split(', ')
+def _build_non_summer_ranges(start_date: datetime.date, end_date: datetime.date) -> list[tuple[datetime.date, datetime.date]]:
+    summer_start = datetime.date(start_date.year, 6, 1)
+    summer_end = datetime.date(start_date.year, 8, 31)
 
-                if stage not in form.keys():
-                    form[stage] = {}
-                    form[stage][course] = {}
-                    form[stage][course][group] = group_id
-                elif course not in form[stage].keys():
-                    form[stage][course] = {}
-                    form[stage][course][group] = group_id
-                else:
-                    form[stage][course][group] = group_id
-            groups[faculty.text].update(forms)
+    if end_date < summer_start or start_date > summer_end:
+        return [(start_date, end_date)]
 
-    if not groups:
-        logging.info("can't parse groups list: list is empty")
-        return
+    ranges: list[tuple[datetime.date, datetime.date]] = []
+    if start_date < summer_start:
+        ranges.append((start_date, min(end_date, summer_start - datetime.timedelta(days=1))))
+    if end_date > summer_end:
+        ranges.append((max(start_date, summer_end + datetime.timedelta(days=1)), end_date))
 
-    with open(Path(BASE_DIR / 'data/groups.json'), 'w', encoding='UTF-8') as output:
-        json.dump(groups, output, indent=2, ensure_ascii=False)
+    return ranges
 
-    logging.info(f"parsed groups successfully")
+
+def parse_groups() -> None:
+    if schedule_api.refresh_groups_cache():
+        logging.info("updated groups successfully")
+    else:
+        logging.info("can't update groups list: api response is invalid")
+
+
+def _build_schedule(items: list[dict[str, Any]], teachers: dict[int, dict[str, Any]],
+                    rooms: dict[int, dict[str, Any]], buildings: dict[int, dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
+    schedule: dict[str, list[dict[str, str]]] = {}
+
+    def format_rank(rank: str) -> str:
+        rank = (rank or "").strip()
+        if not rank:
+            return ""
+        if "." in rank:
+            return rank
+        lowered = rank.lower()
+        if "старш" in lowered and "преп" in lowered:
+            return "ст. преп."
+        if "завед" in lowered and "каф" in lowered:
+            return "зав. каф."
+        if "проф" in lowered:
+            return "проф."
+        if "доцент" in lowered:
+            return "доц."
+        if "ассист" in lowered:
+            return "асс."
+        if "препод" in lowered:
+            return "преп."
+        return rank
+
+    parsed_items = []
+    for item in items:
+        start_dt = _parse_iso_datetime(item.get("start_time"))
+        end_dt = _parse_iso_datetime(item.get("end_time"))
+        if not start_dt or not end_dt:
+            continue
+
+        parsed_items.append((start_dt.astimezone(TZINFO), end_dt.astimezone(TZINFO), item))
+
+    for start_dt, end_dt, item in sorted(parsed_items, key=lambda entry: entry[0]):
+        day_label = _format_day_label(start_dt.date())
+        time_text = f"{start_dt:%H:%M} — {end_dt:%H:%M}"
+        teacher_id = item.get("teacher_id")
+        room_id = item.get("room_id")
+
+        teacher_name = ""
+        teacher_url = ""
+        if teacher_id is not None:
+            teacher_data = teachers.get(int(teacher_id), {})
+            teacher_rank = format_rank(teacher_data.get("rank") or "")
+            teacher_full_name = teacher_data.get("name") or ""
+            teacher_url = teacher_data.get("atlas_url") or ""
+            if teacher_rank and teacher_full_name:
+                teacher_name = f"{teacher_rank} {teacher_full_name}".strip()
+            else:
+                teacher_name = teacher_full_name or teacher_rank
+
+        room_name = ""
+        if room_id is not None:
+            room_data = rooms.get(int(room_id), {})
+            room_name = room_data.get("name") or ""
+            building_name = ""
+            building_id = room_data.get("building_id")
+            if building_id is not None:
+                building_name = buildings.get(int(building_id), {}).get("name", "")
+            if room_name and building_name:
+                room_name = f"{room_name}, {building_name}"
+            elif building_name:
+                room_name = building_name
+
+        schedule.setdefault(day_label, []).append({
+            "time": time_text,
+            "mod": item.get("note") or "",
+            "name": item.get("name") or "",
+            "type": item.get("type") or "",
+            "teacher": teacher_name,
+            "teacher_url": teacher_url,
+            "room": room_name,
+            "class_url": item.get("class_url") or "",
+        })
+
+    return schedule
 
 
 async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if date_1 and not date_2:
         date_2 = date_1
 
-    url = f"{SCHEDULE_DATE_URL}{group}&date1={date_1}&date2={date_2}"
-    
-    try:
-        schedule_response = request.get(url, timeout=5)
-    except request.exceptions.Timeout:
-        logging.error(f"Timeout error occurred while parsing schedule for group: {group}, sub_group: {sub_group}, "
-                      f"date: {date_1} - {date_2}")
-        return None, url
-    except request.exceptions.RequestException as e:
-        logging.error(f"Request error occurred while parsing schedule for group: {group}, sub_group: {sub_group}, "
-                      f"date: {date_1} - {date_2}, {e}")
-        return None, url
+    url = f"https://guide.herzen.spb.ru/schedule/{group}/by-dates"
 
-    logging.info(f"group: {group}, sub_group: {sub_group}, date: {date_1} - {date_2}, "
-                 f"url: {url}, r_code: {schedule_response.status_code}")
+    resolved_sub_group = None
+    if sub_group not in (None, 0, "0"):
+        try:
+            sub_group_int = int(sub_group)
+        except (TypeError, ValueError):
+            sub_group_int = None
 
-    soup = BeautifulSoup(schedule_response.content, features="html.parser")
-
-    if soup.find('a', string='другую группу'):  # No classes at that period
-        last_summer_day = datetime.datetime(date_1.year, 8, 31).date()
-        if date_1 <= last_summer_day < date_2:
-            return await parse_date_schedule(group, sub_group, last_summer_day + datetime.timedelta(days=1), date_2)
-        return {}, url
-
-    if soup.find('tbody'):
-        courses_column = soup.find('tbody').findAll('tr')
-    else:
-        return None, url
-
-    schedule_courses = {}
-    day_name = ''
-    for class_number in range(len(courses_column)):
-
-        class_time = courses_column[class_number].find('th').text
-
-        if courses_column[class_number].find('th', {'class': 'dayname'}):
-            day_name = courses_column[class_number].find('th', {'class': 'dayname'}).text
-            continue
-
-        course = courses_column[class_number].findAll('td')
-
-        if (len(course) > 1) and sub_group and (0 < sub_group <= len(course)):  # If multiple classes at the same time
-            course = course[sub_group - 1]
-        else:
-            course = course[0]
-
-        if not course.find('strong'):  # If class not found
-            continue
-
-        class_names = course.findAll('strong')
-        for class_name in class_names:
-            class_type = class_name.next.next
-
-            if class_name.find('br'):
-                class_type = class_type.next.next
-            if type(class_name.next) is not NavigableString:
-                class_type = class_type.next
-
-            class_mod = class_type.next.next
-            if type(class_mod) is not NavigableString:
-                class_mod = ''
+        if sub_group_int is not None:
+            if sub_group_int in (1, 2):
+                try:
+                    group_int = int(group)
+                    resolved_sub_group = int(f"{group_int}{sub_group_int}")
+                except (TypeError, ValueError):
+                    resolved_sub_group = sub_group_int
             else:
-                class_mod = class_mod.text.strip()
-                class_mod = re.sub(r'(\d\d\.\d\d—\d\d\.\d\d)|'
-                                   r'(\d\.\d\d—\d\.\d\d)|'
-                                   r'(\d\.\d\d—\d\d\.\d\d)|'
-                                   r'(\d\d\.\d\d—\d\.\d\d)|'
-                                   r'(\d\d\.\d\d)|(\d\.\d\d)', '', class_mod)
-                class_mod = re.sub(r'(\()|(\))|(\* дистанционное обучение)', '', class_mod)
-                class_mod = class_mod.strip()
+                resolved_sub_group = sub_group_int
 
-            class_teacher = ''
-            class_room = ''
-
-            if "дистанционное обучение" not in course.text:
-                class_teacher = class_type.next.next.next
-                class_room = class_teacher.next.next
-
-                class_teacher = class_teacher.text
-                class_room = str(class_room.text).strip(", \n")
-
-            if day_name not in schedule_courses.keys():
-                schedule_courses[day_name] = []
-            schedule_courses[day_name].append({
-                'time': class_time,
-                'mod': class_mod,
-                'name': class_name.text.strip(),
-                'type': class_type.strip(),
-                'teacher': class_teacher,
-                'room': class_room
-            })
-    if not schedule_courses:
+    date_ranges = _build_non_summer_ranges(date_1, date_2)
+    if not date_ranges:
         return {}, url
-    return schedule_courses, url
+
+    schedule_items: list[dict[str, Any]] = []
+    for start_date, end_date in date_ranges:
+        schedule_response = schedule_api.get_schedule(group, start_date, end_date, sub_group_id=resolved_sub_group)
+        if schedule_response is None:
+            return None, url
+        if not isinstance(schedule_response, list):
+            logging.error("unexpected schedule response for group %s: %s", group, type(schedule_response))
+            return None, url
+        schedule_items.extend(schedule_response)
+
+    if not schedule_items:
+        return {}, url
+
+    teacher_ids = {item.get("teacher_id") for item in schedule_items if item.get("teacher_id") is not None}
+    room_ids = {item.get("room_id") for item in schedule_items if item.get("room_id") is not None}
+
+    teachers = schedule_api.get_teachers(teacher_ids)
+    rooms = schedule_api.get_rooms(room_ids)
+    building_ids = {room.get("building_id") for room in rooms.values() if room.get("building_id") is not None}
+    buildings = schedule_api.get_buildings(building_ids)
+
+    schedule = _build_schedule(schedule_items, teachers, rooms, buildings)
+    return schedule, url
 
 
 async def update_groups(time_to_update: str = None):
     while True:
-        logging.info(f"starting to update groups")
+        logging.info("starting to update groups")
         parse_groups()
 
         if not time_to_update:

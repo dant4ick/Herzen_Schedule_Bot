@@ -28,5 +28,8 @@ SUBSCRIBE_URL = os.environ.get('SUBSCRIBE_URL', r'https://boosty.to/dant4ick')
 # Timezone configuration
 TIMEZONE = os.environ.get('TIMEZONE', 'Europe/Moscow')
 
+# Redis cache
+REDIS_URL = os.environ.get('REDIS_URL')
+
 # Path to run.py dir
 BASE_DIR = Path(__file__).parent.parent

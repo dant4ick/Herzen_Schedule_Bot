@@ -15,7 +15,7 @@
    ```sh
    sudo mkdir -p /var/lib/herzen_schedule_bot
    sudo chown $USER /var/lib/herzen_schedule_bot
-   docker run --env-file .env -p 5000:5000 -v /var/lib/herzen_schedule_bot:/app/data ghcr.io/dant4ick/herzen_schedule_bot:latest
+   docker run --env-file .env -p 5000:5000 -v /var/lib/herzen_schedule_bot:/app/storage ghcr.io/dant4ick/herzen_schedule_bot:latest
    ```
 
 ---
@@ -31,6 +31,7 @@
 | DONATE_URL            | Ссылка на донат                  | https://pay.cloudtips.ru/p/0a19cb8e |
 | SUBSCRIBE_URL         | Ссылка на подписку               | https://boosty.to/dant4ick          |
 | TIMEZONE              | IANA-таймзона бота               | Europe/Moscow                       |
+| REDIS_URL             | URL Redis для кеша API           | redis://redis:6379/0                |
 
 ---
 
@@ -66,7 +67,7 @@
    ```
 2. Запустите:
    ```sh
-   docker run --env-file .env -p 5000:5000 -v /var/lib/herzen_schedule_bot:/app/data herzen_schedule_bot:local
+   docker run --env-file .env -p 5000:5000 -v /var/lib/herzen_schedule_bot:/app/storage herzen_schedule_bot:local
    ```
 
 ---
@@ -77,6 +78,14 @@
    ```yaml
    version: '3.8'
    services:
+     redis:
+       image: redis:7-alpine
+       container_name: herzen-schedule-redis
+       restart: always
+       command: ["redis-server", "--appendonly", "yes"]
+       volumes:
+         - ./dockerdata/redis:/data
+
      bot:
        image: ghcr.io/dant4ick/herzen_schedule_bot:latest
        container_name: herzen-schedule-bot
@@ -90,13 +99,11 @@
          DONATE_URL: ${DONATE_URL}
          SUBSCRIBE_URL: ${SUBSCRIBE_URL}
          TIMEZONE: ${TIMEZONE:-Europe/Moscow}
-         CRYPTO_PAY_API_TOKEN: ${CRYPTO_PAY_API_TOKEN}
-         CRYPTO_PAY_API_NET: ${CRYPTO_PAY_API_NET}
-         volumes:
-            - /var/lib/herzen_schedule_bot:/app/data
+         REDIS_URL: redis://redis:6379/0
+       volumes:
+         - /var/lib/herzen_schedule_bot:/app/storage
        ports:
          - "5000:5000"
-   volumes:
    ```
 2. Запуск:
    ```sh

@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timedelta, time
 
@@ -6,10 +5,10 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from pathlib import Path
-from data.config import BASE_DIR, ADMIN_TELEGRAM_ID
+from data.config import ADMIN_TELEGRAM_ID
 from scripts import keyboards
 from scripts.bot import db, dp, bot
+from scripts import schedule_api
 from scripts.timezone import tz_now
 
 day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
@@ -28,9 +27,56 @@ class NumCallback(CallbackData, prefix="data"):
 
 
 async def open_groups_file():
-    with open(Path(BASE_DIR / 'data/groups.json'), 'r', encoding='UTF-8') as groups_json:
-        groups = json.load(groups_json)
-    return groups
+    groups = schedule_api.get_groups_tree()
+    return groups or {}
+
+
+def _resolve_sub_group_name(sub_groups, sub_group_id):
+    if not sub_group_id:
+        return None
+    try:
+        sub_group_id = int(sub_group_id)
+    except (TypeError, ValueError):
+        return None
+    if sub_group_id == 0:
+        return None
+    for index, sub_group in enumerate(sub_groups, start=1):
+        try:
+            if int(sub_group.get("id")) == sub_group_id:
+                return sub_group.get("name") or str(index)
+        except (TypeError, ValueError):
+            continue
+    if 1 <= sub_group_id <= len(sub_groups):
+        return sub_groups[sub_group_id - 1].get("name") or str(sub_group_id)
+    return str(sub_group_id)
+
+
+def find_group_info(groups, group_id, sub_group_id=None):
+    try:
+        target_id = int(group_id)
+    except (TypeError, ValueError):
+        return None, None
+
+    for key, value in groups.items():
+        if isinstance(value, dict):
+            if "id" in value:
+                try:
+                    if int(value.get("id")) == target_id:
+                        sub_groups = value.get("sub_groups") or []
+                        return key, _resolve_sub_group_name(sub_groups, sub_group_id)
+                except (TypeError, ValueError):
+                    continue
+            group_name, sub_group_name = find_group_info(value, target_id, sub_group_id)
+            if group_name:
+                return group_name, sub_group_name
+        elif isinstance(value, (int, str)):
+            try:
+                if int(value) == target_id:
+                    return key, None
+            except (TypeError, ValueError):
+                continue
+
+    return None, None
 
 
 async def generate_kb_nums(source):
@@ -59,11 +105,41 @@ async def generate_schedule_message(schedule):
             type = course['type']
             teacher = course['teacher']
             room = course['room']
+            class_url = course.get('class_url')
+            teacher_url = course.get('teacher_url')
 
-            msg_text += f"\n⏰ {time} <i>{mod}</i>" \
-                        f"\n<b>{name}</b> {type}"
+            type_label = (type or "").strip()
+            if type_label:
+                type_label = type_label.lower()
+                type_label = {
+                    "лекция": "лекц",
+                    "практика": "практ",
+                    "лабораторная": "лаб",
+                    "семинар": "сем",
+                    "зачет": "зач",
+                    "зачёт": "зач",
+                    "экзамен": "экз",
+                    "консультация": "конс",
+                }.get(type_label, type_label)
+
+            title = name or ""
+            if type_label:
+                title = f"{title} [{type_label}]" if title else f"[{type_label}]"
+
+            time_line = f"⏰ {time}"
+            if mod:
+                time_line += f" <i>{mod}</i>"
+
+            if class_url:
+                time_line += f" <a href=\"{class_url}\">🔗 (курс)</a>"
+
+            msg_text += f"\n{time_line}\n{title}"
+
             if teacher:
-                msg_text += f"\n{teacher.strip()}"
+                teacher_line = teacher.strip()
+                if teacher_url:
+                    teacher_line = f"{teacher_line} <a href=\"{teacher_url}\">🔗 (профиль)</a>"
+                msg_text += f"\n{teacher_line}"
             if room:
                 msg_text += f"\n{room.strip()}"
             msg_text += "\n"
@@ -75,7 +151,10 @@ def extract_group_numbers(data):
     group_numbers = []
 
     if isinstance(data, dict):
-        for key, value in data.items():
+        if "id" in data and isinstance(data["id"], (int, str)):
+            group_numbers.append(str(data["id"]))
+            return group_numbers
+        for value in data.values():
             group_numbers.extend(extract_group_numbers(value))
     elif isinstance(data, str):
         try:
@@ -83,6 +162,8 @@ def extract_group_numbers(data):
             group_numbers.append(data)
         except ValueError:
             pass
+    elif isinstance(data, int):
+        group_numbers.append(str(data))
 
     return group_numbers
 
