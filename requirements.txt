@@ -1,5 +1,6 @@
 aiofiles==24.1.0
 aiogram==3.14.0
+python-dotenv==1.0.1
 aiohappyeyeballs==2.4.3
 aiohttp==3.10.10
 aiosignal==1.3.1
