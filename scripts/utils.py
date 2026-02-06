@@ -92,59 +92,70 @@ async def generate_kb_nums(source):
     return msg_text, builder.as_markup()
 
 
+def _format_course(course):
+    time = course['time']
+    mod = course['mod']
+    if mod:
+        mod = "ℹ " + mod
+    name = course['name']
+    type = course['type']
+    teacher = course['teacher']
+    room = course['room']
+    class_url = course.get('class_url')
+    teacher_url = course.get('teacher_url')
+
+    type_label = (type or "").strip()
+    if type_label:
+        type_label = type_label.lower()
+        type_label = {
+            "лекция": "лекц",
+            "практика": "практ",
+            "лабораторная": "лаб",
+            "семинар": "сем",
+            "зачет": "зач",
+            "зачёт": "зач",
+            "экзамен": "экз",
+            "консультация": "конс",
+        }.get(type_label, type_label)
+
+    title = name or ""
+    if type_label:
+        title = f"{title} [{type_label}]" if title else f"[{type_label}]"
+
+    time_line = f"⏰ {time}"
+    if mod:
+        time_line += f" <i>{mod}</i>"
+
+    if class_url:
+        time_line += f" <a href=\"{class_url}\">🔗 (курс)</a>"
+
+    lines = [f"\n{time_line}\n{title}"]
+    if teacher:
+        teacher_line = teacher.strip()
+        if teacher_url:
+            teacher_line = f"{teacher_line} <a href=\"{teacher_url}\">🔗 (профиль)</a>"
+        lines.append(teacher_line)
+    if room:
+        lines.append(room.strip())
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _format_day(day: str, courses: list) -> str:
+    """Format one day block (header + courses)."""
+    block = f"\n🗓{day}\n"
+    for course in courses:
+        block += _format_course(course)
+    return block + "\n"
+
+
 async def generate_schedule_message(schedule):
-    msg_text = ''
-    for day in schedule:
-        msg_text += f"\n🗓{day}\n"
-        for course in schedule[day]:
-            time = course['time']
-            mod = course['mod']
-            if mod:
-                mod = "ℹ " + mod
-            name = course['name']
-            type = course['type']
-            teacher = course['teacher']
-            room = course['room']
-            class_url = course.get('class_url')
-            teacher_url = course.get('teacher_url')
+    return "".join(_format_day(day, schedule[day]) for day in schedule)
 
-            type_label = (type or "").strip()
-            if type_label:
-                type_label = type_label.lower()
-                type_label = {
-                    "лекция": "лекц",
-                    "практика": "практ",
-                    "лабораторная": "лаб",
-                    "семинар": "сем",
-                    "зачет": "зач",
-                    "зачёт": "зач",
-                    "экзамен": "экз",
-                    "консультация": "конс",
-                }.get(type_label, type_label)
 
-            title = name or ""
-            if type_label:
-                title = f"{title} [{type_label}]" if title else f"[{type_label}]"
-
-            time_line = f"⏰ {time}"
-            if mod:
-                time_line += f" <i>{mod}</i>"
-
-            if class_url:
-                time_line += f" <a href=\"{class_url}\">🔗 (курс)</a>"
-
-            msg_text += f"\n{time_line}\n{title}"
-
-            if teacher:
-                teacher_line = teacher.strip()
-                if teacher_url:
-                    teacher_line = f"{teacher_line} <a href=\"{teacher_url}\">🔗 (профиль)</a>"
-                msg_text += f"\n{teacher_line}"
-            if room:
-                msg_text += f"\n{room.strip()}"
-            msg_text += "\n"
-        msg_text += "\n"
-    return msg_text
+async def generate_schedule_days(schedule) -> list:
+    """Return list of day blocks (one string per day), for splitting long schedules by day."""
+    return [_format_day(day, schedule[day]) for day in schedule]
 
 
 def extract_group_numbers(data):

@@ -10,8 +10,37 @@ from aiogram import exceptions
 from scripts import keyboards
 from scripts.bot import db, bot
 from scripts.parse import parse_date_schedule
-from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message
+from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message, generate_schedule_days
 from scripts.timezone import tz_today
+
+
+TELEGRAM_MAX_MESSAGE_LENGTH = 4096
+SAFE_MESSAGE_LENGTH = 4000
+
+
+def _group_days_into_messages(day_blocks: List[str], intro: str, max_first: int, max_rest: int) -> List[str]:
+    """Group day blocks into messages that fit within Telegram limit. First message has intro."""
+    messages = []
+    current = ""
+    current_max = max_first
+
+    for i, day_block in enumerate(day_blocks):
+        if not current:
+            candidate = intro + day_block
+        else:
+            candidate = current + day_block
+
+        if len(candidate) <= current_max:
+            current = candidate
+        else:
+            if current:
+                messages.append(current)
+            current = (intro + day_block) if not messages else day_block
+            current_max = max_rest
+
+    if current:
+        messages.append(current)
+    return messages
 
 
 async def handle_broadcast_exceptions(user_id: int, e: exceptions.TelegramAPIError, retry_callback: Callable):
@@ -76,20 +105,23 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
         else:
             period = "следующую неделю"
 
-    msg_text = await generate_schedule_message(schedule)
-    msg_len = len(msg_text)
-    if msg_len > 4000:
-        await bot.send_message(user_id, f"{header}\n\n"
-                                           f"Сообщение получилось слишком длинным, "
-                                           f"так что придется смотреть по ссылке...\n"
-                                           f"{reminder}",
-                                  reply_markup=reply_markup)
+    intro = f"{header}\n\nВот твое расписание на {period}:\n"
+    day_blocks = await generate_schedule_days(schedule)
+    msg_text = "".join(day_blocks)
+    full_text = intro + msg_text + (reminder or "")
+
+    if len(full_text) <= SAFE_MESSAGE_LENGTH:
+        await bot.send_message(user_id, full_text, reply_markup=reply_markup)
         return
 
-    await bot.send_message(user_id, f"{header}\n\n"
-                                       f"Вот твое расписание на {period}:\n{msg_text}"
-                                       f"{reminder}",
-                              reply_markup=reply_markup)
+    max_first = TELEGRAM_MAX_MESSAGE_LENGTH - len(intro)
+    messages = _group_days_into_messages(day_blocks, intro, max_first, SAFE_MESSAGE_LENGTH)
+    for i, part in enumerate(messages):
+        is_last = i == len(messages) - 1
+        text = part + (reminder if is_last else "")
+        if not is_last:
+            await asyncio.sleep(0.3)
+        await bot.send_message(user_id, text, reply_markup=reply_markup if is_last else None)
 
 
 async def mailing_schedule(mailing_time: str, schedule_date: str):
