@@ -12,6 +12,65 @@ from scripts.bot import db, bot
 from scripts.parse import parse_date_schedule
 from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message, today_for_group
 
+TELEGRAM_MESSAGE_MAX_LEN = 4000
+SCHEDULE_CHUNK_BODY_LEN = 3300
+SCHEDULE_CHUNK_DELAY_SECONDS = 0.6
+
+
+def _split_text_into_chunks(text: str, max_len: int) -> List[str]:
+    if len(text) <= max_len:
+        return [text]
+
+    chunks: List[str] = []
+    current_lines: List[str] = []
+    current_len = 0
+
+    for line in text.splitlines(keepends=True):
+        line_len = len(line)
+        if line_len > max_len:
+            if current_lines:
+                chunks.append("".join(current_lines).rstrip("\n"))
+                current_lines = []
+                current_len = 0
+            for start in range(0, line_len, max_len):
+                chunks.append(line[start:start + max_len].rstrip("\n"))
+            continue
+
+        if current_lines and current_len + line_len > max_len:
+            chunks.append("".join(current_lines).rstrip("\n"))
+            current_lines = [line]
+            current_len = line_len
+            continue
+
+        current_lines.append(line)
+        current_len += line_len
+
+    if current_lines:
+        chunks.append("".join(current_lines).rstrip("\n"))
+
+    return [chunk for chunk in chunks if chunk]
+
+
+def _build_schedule_messages(header: str, period: str, schedule_text: str, reminder: str) -> List[str]:
+    body_chunks = _split_text_into_chunks(schedule_text, SCHEDULE_CHUNK_BODY_LEN)
+    total_parts = len(body_chunks)
+
+    messages = []
+    for index, chunk in enumerate(body_chunks, start=1):
+        if index == 1:
+            text = f"{header}\n\nВот твое расписание на {period}:\n{chunk}"
+        else:
+            text = f"<i>Продолжение расписания ({index}/{total_parts})</i>\n{chunk}"
+        messages.append(text)
+
+    if reminder:
+        if len(messages[-1]) + len(reminder) <= TELEGRAM_MESSAGE_MAX_LEN:
+            messages[-1] += reminder
+        else:
+            messages.append(reminder)
+
+    return messages
+
 
 async def handle_broadcast_exceptions(user_id: int, e: exceptions.TelegramAPIError, retry_callback: Callable):
     if isinstance(e, exceptions.TelegramForbiddenError):
@@ -28,7 +87,13 @@ async def handle_broadcast_exceptions(user_id: int, e: exceptions.TelegramAPIErr
         logging.exception(f"target id:{user_id} - failed")
 
 
-async def send_date_schedule(user_id: int, schedule_response, period: str, header: str = "", buttons: List[InlineKeyboardButton] = []):
+async def send_date_schedule(
+    user_id: int,
+    schedule_response,
+    period: str,
+    header: str = "",
+    buttons: List[InlineKeyboardButton] | None = None,
+):
     logging.debug(f"response: {schedule_response}")
 
     if schedule_response is None:
@@ -36,7 +101,10 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
     
     schedule, url = schedule_response
 
-    reply_markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Проверить на сайте', url=f"{url}")], buttons])
+    inline_keyboard = [[InlineKeyboardButton(text='Проверить на сайте', url=f"{url}")]]
+    if buttons:
+        inline_keyboard.append(buttons)
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
     if schedule is None:
         await bot.send_message(user_id, f"{header}\n\n😖 Упс, кажется, расписание не отвечает. Попробуй еще раз.\n"
@@ -76,19 +144,28 @@ async def send_date_schedule(user_id: int, schedule_response, period: str, heade
             period = "следующую неделю"
 
     msg_text = await generate_schedule_message(schedule)
-    msg_len = len(msg_text)
-    if msg_len > 4000:
-        await bot.send_message(user_id, f"{header}\n\n"
-                                           f"Сообщение получилось слишком длинным, "
-                                           f"так что придется смотреть по ссылке...\n"
-                                           f"{reminder}",
-                                  reply_markup=reply_markup)
+    full_message = f"{header}\n\nВот твое расписание на {period}:\n{msg_text}{reminder}"
+
+    if len(full_message) <= TELEGRAM_MESSAGE_MAX_LEN:
+        await bot.send_message(user_id, full_message, reply_markup=reply_markup)
         return
 
-    await bot.send_message(user_id, f"{header}\n\n"
-                                       f"Вот твое расписание на {period}:\n{msg_text}"
-                                       f"{reminder}",
-                              reply_markup=reply_markup)
+    split_messages = _build_schedule_messages(
+        header=header,
+        period=period,
+        schedule_text=msg_text,
+        reminder=reminder,
+    )
+    logging.info("schedule message split into %s parts for user %s", len(split_messages), user_id)
+
+    for index, message_text in enumerate(split_messages):
+        await bot.send_message(
+            user_id,
+            message_text,
+            reply_markup=reply_markup if index == len(split_messages) - 1 else None,
+        )
+        if index < len(split_messages) - 1:
+            await asyncio.sleep(SCHEDULE_CHUNK_DELAY_SECONDS)
 
 
 async def mailing_schedule(mailing_time: str, schedule_date: str):
