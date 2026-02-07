@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
 from aiogram.filters.callback_data import CallbackData
@@ -9,7 +9,7 @@ from data.config import ADMIN_TELEGRAM_ID
 from scripts import keyboards
 from scripts.bot import db, dp, bot
 from scripts import schedule_api
-from scripts.timezone import tz_now
+from scripts.timezone import tz_now, tzinfo_for_faculty
 
 day_pattern = r"(\b((0[1-9])|([1-2]\d)|(3[0-1])|([1-9])))"
 month_pattern = r"(\.((0[1-9])|(1[0-2])|([1-9]))\b)"
@@ -29,6 +29,12 @@ class NumCallback(CallbackData, prefix="data"):
 async def open_groups_file():
     groups = schedule_api.get_groups_tree()
     return groups or {}
+
+
+def today_for_group(group_id: int) -> date:
+    faculty_id = schedule_api.get_group_faculty_id(group_id)
+    group_tz = tzinfo_for_faculty(faculty_id)
+    return datetime.now(tz=group_tz).date()
 
 
 def _resolve_sub_group_name(sub_groups, sub_group_id):

@@ -10,8 +10,7 @@ from aiogram import exceptions
 from scripts import keyboards
 from scripts.bot import db, bot
 from scripts.parse import parse_date_schedule
-from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message
-from scripts.timezone import tz_today
+from scripts.utils import validate_user, seconds_before_iso_time, generate_schedule_message, today_for_group
 
 
 async def handle_broadcast_exceptions(user_id: int, e: exceptions.TelegramAPIError, retry_callback: Callable):
@@ -118,7 +117,7 @@ async def broadcast_schedule(user_id: int, message_type: str):
         header_text = "👋 Привет, это рассылка расписания."
 
         if message_type in "today":
-            today = tz_today()
+            today = today_for_group(group_id)
 
             logging.info(f"attempted to mail today schedule - id: {user_id}")
 
@@ -126,7 +125,7 @@ async def broadcast_schedule(user_id: int, message_type: str):
             await send_date_schedule(user_id, schedule_response, "сегодня",
                                      header=header_text, buttons=[keyboards.inline_bt_unsub])
         elif message_type in "tomorrow":
-            tomorrow = tz_today() + timedelta(days=1)
+            tomorrow = today_for_group(group_id) + timedelta(days=1)
 
             logging.info(f"attempted to mail tomorrow schedule - id: {user_id}")
 

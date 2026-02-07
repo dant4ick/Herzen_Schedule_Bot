@@ -186,8 +186,15 @@ def _build_groups_tree(groups_data: list[dict[str, Any]], faculties_data: list[d
 
     groups_tree: dict[str, dict[str, dict[str, dict[str, dict[str, dict[str, Any]]]]]] = {}
 
+    def parse_faculty_id(value: Any) -> int | None:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
     def sort_key(item: dict[str, Any]) -> tuple:
-        faculty_name = faculties_map.get(item.get("faculty_id"), f"Факультет {item.get('faculty_id')}")
+        faculty_id = parse_faculty_id(item.get("faculty_id"))
+        faculty_name = faculties_map.get(faculty_id, f"Факультет {item.get('faculty_id')}")
         return (
             faculty_name,
             item.get("education_form") or "",
@@ -202,13 +209,16 @@ def _build_groups_tree(groups_data: list[dict[str, Any]], faculties_data: list[d
         except (TypeError, ValueError):
             continue
 
-        faculty_name = faculties_map.get(group.get("faculty_id"), f"Факультет {group.get('faculty_id')}")
+        faculty_id = parse_faculty_id(group.get("faculty_id"))
+        faculty_name = faculties_map.get(faculty_id, f"Факультет {group.get('faculty_id')}")
         form = group.get("education_form") or "неизвестно"
         level = group.get("education_level") or "неизвестно"
         course = str(group.get("course") or "")
         group_name = group.get("name") or f"Группа {group_id}"
 
         leaf: dict[str, Any] = {"id": group_id}
+        if faculty_id is not None:
+            leaf["faculty_id"] = faculty_id
         sub_group_ids = group.get("sub_group_ids") or []
         if isinstance(sub_group_ids, list) and sub_group_ids:
             sub_groups = []
@@ -267,6 +277,52 @@ def refresh_groups_cache() -> bool:
         return False
     _cache_set_json(GROUPS_CACHE_KEY, groups_tree, GROUPS_CACHE_TTL)
     return True
+
+
+def _find_group_meta(groups_node: dict[str, Any], group_id: int) -> dict[str, Any] | None:
+    for value in groups_node.values():
+        if not isinstance(value, dict):
+            continue
+        raw_group_id = value.get("id")
+        if raw_group_id is not None:
+            try:
+                if int(raw_group_id) == group_id:
+                    return value
+            except (TypeError, ValueError):
+                pass
+        nested_result = _find_group_meta(value, group_id)
+        if nested_result:
+            return nested_result
+    return None
+
+
+def get_group_faculty_id(group_id: int) -> int | None:
+    try:
+        normalized_group_id = int(group_id)
+    except (TypeError, ValueError):
+        return None
+
+    groups_tree = get_groups_tree()
+    if not groups_tree:
+        return None
+
+    group_meta = _find_group_meta(groups_tree, normalized_group_id)
+    if not group_meta:
+        return None
+
+    faculty_id = group_meta.get("faculty_id")
+    if faculty_id is None:
+        # Cached tree can be stale and miss faculty metadata from old format.
+        refreshed_groups_tree = get_groups_tree(force_refresh=True)
+        if refreshed_groups_tree:
+            group_meta = _find_group_meta(refreshed_groups_tree, normalized_group_id)
+            if group_meta:
+                faculty_id = group_meta.get("faculty_id")
+
+    try:
+        return int(faculty_id)
+    except (TypeError, ValueError):
+        return None
 
 
 def get_schedule(group_id: int, start_date: datetime.date, end_date: datetime.date,

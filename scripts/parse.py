@@ -3,7 +3,7 @@ import datetime
 import logging
 from typing import Any
 
-from scripts.timezone import TZINFO
+from scripts.timezone import tzinfo_for_faculty
 from scripts.utils import seconds_before_iso_time
 from scripts import schedule_api
 
@@ -17,7 +17,7 @@ WEEKDAYS_RU = [
     "воскресенье",
 ]
 
-def _parse_iso_datetime(value: str | None) -> datetime.datetime | None:
+def _parse_iso_datetime(value: str | None, default_tz: datetime.tzinfo) -> datetime.datetime | None:
     if not value:
         return None
     try:
@@ -28,7 +28,7 @@ def _parse_iso_datetime(value: str | None) -> datetime.datetime | None:
         logging.warning("Failed to parse datetime: %s", value)
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=TZINFO)
+        return parsed.replace(tzinfo=default_tz)
     return parsed
 
 
@@ -63,7 +63,8 @@ def parse_groups() -> None:
 
 
 def _build_schedule(items: list[dict[str, Any]], teachers: dict[int, dict[str, Any]],
-                    rooms: dict[int, dict[str, Any]], buildings: dict[int, dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
+                    rooms: dict[int, dict[str, Any]], buildings: dict[int, dict[str, Any]],
+                    target_tz: datetime.tzinfo) -> dict[str, list[dict[str, str]]]:
     schedule: dict[str, list[dict[str, str]]] = {}
 
     def format_rank(rank: str) -> str:
@@ -89,12 +90,12 @@ def _build_schedule(items: list[dict[str, Any]], teachers: dict[int, dict[str, A
 
     parsed_items = []
     for item in items:
-        start_dt = _parse_iso_datetime(item.get("start_time"))
-        end_dt = _parse_iso_datetime(item.get("end_time"))
+        start_dt = _parse_iso_datetime(item.get("start_time"), target_tz)
+        end_dt = _parse_iso_datetime(item.get("end_time"), target_tz)
         if not start_dt or not end_dt:
             continue
 
-        parsed_items.append((start_dt.astimezone(TZINFO), end_dt.astimezone(TZINFO), item))
+        parsed_items.append((start_dt.astimezone(target_tz), end_dt.astimezone(target_tz), item))
 
     for start_dt, end_dt, item in sorted(parsed_items, key=lambda entry: entry[0]):
         day_label = _format_day_label(start_dt.date())
@@ -181,6 +182,9 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     if not schedule_items:
         return {}, url
 
+    faculty_id = schedule_api.get_group_faculty_id(group)
+    target_tz = tzinfo_for_faculty(faculty_id)
+
     teacher_ids = {item.get("teacher_id") for item in schedule_items if item.get("teacher_id") is not None}
     room_ids = {item.get("room_id") for item in schedule_items if item.get("room_id") is not None}
 
@@ -189,7 +193,7 @@ async def parse_date_schedule(group, sub_group=None, date_1=None, date_2=None):
     building_ids = {room.get("building_id") for room in rooms.values() if room.get("building_id") is not None}
     buildings = schedule_api.get_buildings(building_ids)
 
-    schedule = _build_schedule(schedule_items, teachers, rooms, buildings)
+    schedule = _build_schedule(schedule_items, teachers, rooms, buildings, target_tz)
     return schedule, url
 
 
